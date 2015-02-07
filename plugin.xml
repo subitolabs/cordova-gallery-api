@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+    xmlns:rim="http://www.blackberry.com/ns/widgets"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    id="com.subitolabs.android.cordova.galleryapi"
+    version="0.1">
+    <name>GalleryAPI</name>
+    <description>Cordova gallery API plugin</description>
+    <license>MIT</license>
+    <keywords>cordova,gallery,media,api</keywords>
+    <repo>git@github.com:subitolabs/cordova-gallery-api.git</repo>
+    <issue>https://github.com/subitolabs/cordova-gallery-api/issues</issue>
+
+    <js-module src="www/gallery-api.js" name="gallery-api">
+        <clobbers target="gallery-api" />
+    </js-module>
+
+    <!-- android -->
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="GalleryAPI" >
+                <param name="android-package" value="com.subitolabs.android.cordova.galleryapi.GalleryAPI"/>
+            </feature>
+        </config-file>
+        <source-file src="src/android/GalleryAPI.java" target-dir="src/com/subitolabs/android/cordova/galleryapi" />
+    </platform>
+
+</plugin>
