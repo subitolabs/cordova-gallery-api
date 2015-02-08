@@ -18,6 +18,11 @@
 
     <!-- android -->
     <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="GalleryAPI" >
+                <param name="android-package" value="com.subitolabs.cordova.android.galleryapi.GalleryAPI"/>
+            </feature>
+        </config-file>
         <config-file target="AndroidManifest.xml" parent="/*">
             <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
             <uses-permission android:name="android.permission.MANAGE_DOCUMENTS" />
