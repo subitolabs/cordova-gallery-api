@@ -48,7 +48,8 @@ public class GalleryAPI extends CordovaPlugin
 
     public ArrayOfObjects getBuckets()
     {
-        Object columns = new Object(){{
+        Object columns = new Object()
+        {{
             put("id", MediaStore.Images.ImageColumns.BUCKET_ID);
             put("title", MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME);
         }};
@@ -60,22 +61,23 @@ public class GalleryAPI extends CordovaPlugin
     {
         Object columns = new Object()
         {{
-            put("id", MediaStore.Images.Media._ID);
+            put("int.id", MediaStore.Images.Media._ID);
             put("data", MediaStore.MediaColumns.DATA);
-            put("date_added", MediaStore.Images.ImageColumns.DATE_ADDED);
+            put("int.date_added", MediaStore.Images.ImageColumns.DATE_ADDED);
             put("title", MediaStore.Images.ImageColumns.DISPLAY_NAME);
-            put("height", MediaStore.Images.ImageColumns.HEIGHT);
-            put("width", MediaStore.Images.ImageColumns.WIDTH);
-            put("orientation", MediaStore.Images.ImageColumns.ORIENTATION);
+            put("int.height", MediaStore.Images.ImageColumns.HEIGHT);
+            put("int.width", MediaStore.Images.ImageColumns.WIDTH);
+            put("int.orientation", MediaStore.Images.ImageColumns.ORIENTATION);
             put("mime_type", MediaStore.Images.ImageColumns.MIME_TYPE);
-            put("lat", MediaStore.Images.ImageColumns.LATITUDE);
-            put("lon", MediaStore.Images.ImageColumns.LONGITUDE);
-            put("size", MediaStore.Images.ImageColumns.SIZE);
+            put("float.lat", MediaStore.Images.ImageColumns.LATITUDE);
+            put("float.lon", MediaStore.Images.ImageColumns.LONGITUDE);
+            put("int.size", MediaStore.Images.ImageColumns.SIZE);
+            put("int.thumbnail", MediaStore.Images.ImageColumns.MINI_THUMB_MAGIC);
         }};
 
         Object thumbnailsColumns = new Object()
         {{
-            put("id", MediaStore.Images.Media._ID);
+            put("int.source_id", MediaStore.Images.Thumbnails.IMAGE_ID);
             put("data", MediaStore.MediaColumns.DATA);
         }};
 
@@ -86,9 +88,13 @@ public class GalleryAPI extends CordovaPlugin
         {
             for (Object thumbnail : thumbnails)
             {
-                if (thumbnail.get("id").compareTo(media.get("id")) == 0)
+               // Logger.getLogger("my.output").info("" + thumbnail.get("source_id"));
+
+                if ((int) thumbnail.get("source_id") == (int) media.get("id"))
                 {
                     media.put("thumbnail", thumbnail.get("data"));
+
+                    //Logger.getLogger("my.output").info("" + media.get("id"));
 
                     break;
                 }
@@ -116,7 +122,20 @@ public class GalleryAPI extends CordovaPlugin
 
                 for (String column : columns.keySet())
                 {
-                    item.put(column, cursor.getString(cursor.getColumnIndex(columns.get(column))));
+                    int columnIndex = cursor.getColumnIndex(columns.get(column).toString());
+
+                    if (column.startsWith("int."))
+                    {
+                        item.put(column.substring(4), cursor.getInt(columnIndex));
+                    }
+                    else if (column.startsWith("float."))
+                    {
+                        item.put(column.substring(6), cursor.getFloat(columnIndex));
+                    }
+                    else
+                    {
+                        item.put(column, cursor.getString(columnIndex));
+                    }
                 }
 
                 buffer.add(item);
@@ -129,7 +148,7 @@ public class GalleryAPI extends CordovaPlugin
         return buffer;
     }
 
-    private class Object extends HashMap<String, String>
+    private class Object extends HashMap<String, java.lang.Object>
     {
 
     }
