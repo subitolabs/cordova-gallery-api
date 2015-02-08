@@ -1,4 +1,4 @@
-package com.subitolabs.android.cordova.galleryapi;
+package com.subitolabs.cordova.galleryapi;
 
 import android.content.Context;
 import android.database.Cursor;
