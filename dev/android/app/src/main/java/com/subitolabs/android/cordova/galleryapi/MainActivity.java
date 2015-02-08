@@ -1,4 +1,4 @@
-package com.subitolabs.android.cordova.gallerypicker;
+package com.subitolabs.android.cordova.galleryapi;
 
 import android.content.Context;
 import android.support.v7.app.ActionBarActivity;
@@ -25,7 +25,7 @@ public class MainActivity extends ActionBarActivity {
 
         context = this.getApplicationContext();
 
-        GalleryPickerPlugin plugin = new GalleryPickerPlugin();
+        GalleryAPI plugin = new GalleryAPI();
 
         try {
             plugin.execute("getMedia", new JSONArray(), new MyCallbackContext());
