@@ -1,4 +1,4 @@
-package com.subitolabs.android.cordova.galleryapi;
+package com.subitolabs.cordova.galleryapi;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -8,9 +8,12 @@ import android.provider.MediaStore;
 import org.apache.cordova.*;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.logging.Logger;
 
 public class GalleryAPI extends CordovaPlugin
 {
@@ -46,9 +49,10 @@ public class GalleryAPI extends CordovaPlugin
         }
     }
 
-    public ArrayOfObjects getBuckets()
+    public ArrayOfObjects getBuckets() throws JSONException
     {
-        Object columns = new Object(){{
+        Object columns = new Object()
+        {{
             put("id", MediaStore.Images.ImageColumns.BUCKET_ID);
             put("title", MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME);
         }};
@@ -56,26 +60,27 @@ public class GalleryAPI extends CordovaPlugin
         return queryContentProvider(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, "1) GROUP BY 1,(2");
     }
 
-    private ArrayOfObjects getMedia(String bucket)
+    private ArrayOfObjects getMedia(String bucket) throws JSONException
     {
         Object columns = new Object()
         {{
-            put("id", MediaStore.Images.Media._ID);
+            put("int.id", MediaStore.Images.Media._ID);
             put("data", MediaStore.MediaColumns.DATA);
-            put("date_added", MediaStore.Images.ImageColumns.DATE_ADDED);
+            put("int.date_added", MediaStore.Images.ImageColumns.DATE_ADDED);
             put("title", MediaStore.Images.ImageColumns.DISPLAY_NAME);
-            put("height", MediaStore.Images.ImageColumns.HEIGHT);
-            put("width", MediaStore.Images.ImageColumns.WIDTH);
-            put("orientation", MediaStore.Images.ImageColumns.ORIENTATION);
+            put("int.height", MediaStore.Images.ImageColumns.HEIGHT);
+            put("int.width", MediaStore.Images.ImageColumns.WIDTH);
+            put("int.orientation", MediaStore.Images.ImageColumns.ORIENTATION);
             put("mime_type", MediaStore.Images.ImageColumns.MIME_TYPE);
-            put("lat", MediaStore.Images.ImageColumns.LATITUDE);
-            put("lon", MediaStore.Images.ImageColumns.LONGITUDE);
-            put("size", MediaStore.Images.ImageColumns.SIZE);
+            put("float.lat", MediaStore.Images.ImageColumns.LATITUDE);
+            put("float.lon", MediaStore.Images.ImageColumns.LONGITUDE);
+            put("int.size", MediaStore.Images.ImageColumns.SIZE);
+            put("int.thumbnail_id", MediaStore.Images.ImageColumns.MINI_THUMB_MAGIC);
         }};
 
         Object thumbnailsColumns = new Object()
         {{
-            put("id", MediaStore.Images.Media._ID);
+            put("int.source_id", MediaStore.Images.Thumbnails.IMAGE_ID);
             put("data", MediaStore.MediaColumns.DATA);
         }};
 
@@ -86,12 +91,21 @@ public class GalleryAPI extends CordovaPlugin
         {
             for (Object thumbnail : thumbnails)
             {
-                if (thumbnail.get("id").compareTo(media.get("id")) == 0)
+               // Logger.getLogger("my.output").info("" + thumbnail.get("source_id"));
+
+                if (thumbnail.getInt("source_id") == media.getInt("id"))
                 {
                     media.put("thumbnail", thumbnail.get("data"));
 
+                    //Logger.getLogger("my.output").info("" + media.get("id"));
+
                     break;
                 }
+            }
+
+            if (!media.has("thumbnail"))
+            {
+                Logger.getLogger("my.output").info("No thumbnail for " + media.get("id") + " - " + media.get("title"));
             }
         }
 
@@ -100,19 +114,25 @@ public class GalleryAPI extends CordovaPlugin
 
     private Context getContext()
     {
-        if (this.cordova != null && this.cordova.getActivity() != null)
-        {
-            return this.cordova.getActivity().getApplicationContext();
-        }
-        else
-        {
-            return MainActivity.context;
-        }
+        return this.cordova.getActivity().getApplicationContext();
     }
 
-    private ArrayOfObjects queryContentProvider(Uri collection, Object columns, String whereClause)
+    private ArrayOfObjects queryContentProvider(Uri collection, Object columns, String whereClause) throws JSONException
     {
-        final Cursor cursor = getContext().getContentResolver().query(collection, columns.values().toArray(new String[columns.values().size()]), whereClause, null, null);
+        final ArrayList<String> columnNames = new ArrayList<String>();
+        final ArrayList<String> columnValues = new ArrayList<String>();
+
+        Iterator<String> iteratorFields = columns.keys();
+
+        while(iteratorFields.hasNext())
+        {
+            String column = iteratorFields.next();
+
+            columnNames.add(column);
+            columnValues.add("" + columns.getString(column));
+        }
+
+        final Cursor cursor = getContext().getContentResolver().query(collection, columnValues.toArray(new String[columns.length()]), whereClause, null, null);
         final ArrayOfObjects buffer = new ArrayOfObjects();
 
         if (cursor.moveToFirst())
@@ -121,9 +141,22 @@ public class GalleryAPI extends CordovaPlugin
             {
                 Object item = new Object();
 
-                for (String column : columns.keySet())
+                for (String column : columnNames)
                 {
-                    item.put(column, cursor.getString(cursor.getColumnIndex(columns.get(column))));
+                    int columnIndex = cursor.getColumnIndex(columns.get(column).toString());
+
+                    if (column.startsWith("int."))
+                    {
+                        item.put(column.substring(4), cursor.getInt(columnIndex));
+                    }
+                    else if (column.startsWith("float."))
+                    {
+                        item.put(column.substring(6), cursor.getFloat(columnIndex));
+                    }
+                    else
+                    {
+                        item.put(column, cursor.getString(columnIndex));
+                    }
                 }
 
                 buffer.add(item);
@@ -136,7 +169,7 @@ public class GalleryAPI extends CordovaPlugin
         return buffer;
     }
 
-    private class Object extends HashMap<String, String>
+    private class Object extends JSONObject
     {
 
     }

@@ -1,6 +1,9 @@
 .idea
 .gradle
 
+/demo/platforms
+/demo/plugins
+
 *.class
 
 # Mobile Tools for Java (J2ME)

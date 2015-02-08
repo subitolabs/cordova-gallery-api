@@ -1,31 +1,33 @@
-package com.subitolabs.android.cordova.galleryapi;
+package com.subitolabs.cordova.galleryapi;
 
-import android.content.Context;
+import android.app.Activity;
+import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaInterface;
+import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 
 
 public class MainActivity extends ActionBarActivity {
-
-    static public Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        context = this.getApplicationContext();
-
         GalleryAPI plugin = new GalleryAPI();
+
+        plugin.cordova = new MyCordova();
 
         try {
             plugin.execute("getMedia", new JSONArray(), new MyCallbackContext());
@@ -55,6 +57,34 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private class MyCordova implements CordovaInterface
+    {
+        @Override
+        public void startActivityForResult(CordovaPlugin cordovaPlugin, Intent intent, int i) {
+
+        }
+
+        @Override
+        public void setActivityResultCallback(CordovaPlugin cordovaPlugin) {
+
+        }
+
+        @Override
+        public Activity getActivity() {
+            return MainActivity.this;
+        }
+
+        @Override
+        public Object onMessage(String s, Object o) {
+            return null;
+        }
+
+        @Override
+        public ExecutorService getThreadPool() {
+            return null;
+        }
     }
 
     private class MyCallbackContext extends CallbackContext
