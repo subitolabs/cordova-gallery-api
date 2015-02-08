@@ -12,8 +12,8 @@
     <repo>git@github.com:subitolabs/cordova-gallery-api.git</repo>
     <issue>https://github.com/subitolabs/cordova-gallery-api/issues</issue>
 
-    <js-module src="www/gallery-api.js" name="gallery-api">
-        <clobbers target="gallery-api" />
+    <js-module src="www/gallery-api.js" name="galleryAPI">
+        <clobbers target="galleryAPI" />
     </js-module>
 
     <!-- android -->
