@@ -58,36 +58,40 @@ public class GalleryAPI extends CordovaPlugin
 
     private ArrayOfObjects getMedia(String bucket)
     {
-        Object columns = new Object(){{
+        Object columns = new Object()
+        {{
             put("id", MediaStore.Images.Media._ID);
+            put("data", MediaStore.MediaColumns.DATA);
             put("date_added", MediaStore.Images.ImageColumns.DATE_ADDED);
             put("title", MediaStore.Images.ImageColumns.DISPLAY_NAME);
             put("height", MediaStore.Images.ImageColumns.HEIGHT);
             put("width", MediaStore.Images.ImageColumns.WIDTH);
             put("orientation", MediaStore.Images.ImageColumns.ORIENTATION);
             put("mime_type", MediaStore.Images.ImageColumns.MIME_TYPE);
+            put("lat", MediaStore.Images.ImageColumns.LATITUDE);
+            put("lon", MediaStore.Images.ImageColumns.LONGITUDE);
+            put("size", MediaStore.Images.ImageColumns.SIZE);
         }};
 
-        final ArrayOfObjects results = queryContentProvider(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, "bucket_display_name = \""+bucket+"\"");
+        Object thumbnailsColumns = new Object()
+        {{
+            put("id", MediaStore.Images.Media._ID);
+            put("data", MediaStore.MediaColumns.DATA);
+        }};
+
+        final ArrayOfObjects results    = queryContentProvider(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, "bucket_display_name = \""+bucket+"\"");
+        final ArrayOfObjects thumbnails = queryContentProvider(MediaStore.Images.Thumbnails.EXTERNAL_CONTENT_URI, thumbnailsColumns, MediaStore.Images.Thumbnails.KIND + " = " + MediaStore.Images.Thumbnails.MINI_KIND);
 
         for (Object media : results)
         {
-            Long mediaID = Long.getLong(media.get("id"));
-
-            Cursor cursor = MediaStore.Images.Thumbnails.queryMiniThumbnail(
-                    getContext().getContentResolver(), (long) mediaID,
-                    MediaStore.Images.Thumbnails.MINI_KIND,
-                    null);
-
-            if (cursor != null && cursor.getCount() > 0)
+            for (Object thumbnail : thumbnails)
             {
-                cursor.moveToFirst();
+                if (thumbnail.get("id").compareTo(media.get("id")) == 0)
+                {
+                    media.put("thumbnail", thumbnail.get("data"));
 
-                String result = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Images.Thumbnails.DATA));
-
-                media.put("thumbnail", result);
-
-                cursor.close();
+                    break;
+                }
             }
         }
 
