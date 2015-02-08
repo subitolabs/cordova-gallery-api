@@ -8,9 +8,12 @@ import android.provider.MediaStore;
 import org.apache.cordova.*;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.logging.Logger;
 
 public class GalleryAPI extends CordovaPlugin
 {
@@ -46,7 +49,7 @@ public class GalleryAPI extends CordovaPlugin
         }
     }
 
-    public ArrayOfObjects getBuckets()
+    public ArrayOfObjects getBuckets() throws JSONException
     {
         Object columns = new Object()
         {{
@@ -57,7 +60,7 @@ public class GalleryAPI extends CordovaPlugin
         return queryContentProvider(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, "1) GROUP BY 1,(2");
     }
 
-    private ArrayOfObjects getMedia(String bucket)
+    private ArrayOfObjects getMedia(String bucket) throws JSONException
     {
         Object columns = new Object()
         {{
@@ -72,7 +75,7 @@ public class GalleryAPI extends CordovaPlugin
             put("float.lat", MediaStore.Images.ImageColumns.LATITUDE);
             put("float.lon", MediaStore.Images.ImageColumns.LONGITUDE);
             put("int.size", MediaStore.Images.ImageColumns.SIZE);
-            put("int.thumbnail", MediaStore.Images.ImageColumns.MINI_THUMB_MAGIC);
+            put("int.thumbnail_id", MediaStore.Images.ImageColumns.MINI_THUMB_MAGIC);
         }};
 
         Object thumbnailsColumns = new Object()
@@ -90,7 +93,7 @@ public class GalleryAPI extends CordovaPlugin
             {
                // Logger.getLogger("my.output").info("" + thumbnail.get("source_id"));
 
-                if ((int) thumbnail.get("source_id") == (int) media.get("id"))
+                if (thumbnail.getInt("source_id") == media.getInt("id"))
                 {
                     media.put("thumbnail", thumbnail.get("data"));
 
@@ -98,6 +101,11 @@ public class GalleryAPI extends CordovaPlugin
 
                     break;
                 }
+            }
+
+            if (!media.has("thumbnail"))
+            {
+                Logger.getLogger("my.output").info("No thumbnail for " + media.get("id") + " - " + media.get("title"));
             }
         }
 
@@ -109,9 +117,22 @@ public class GalleryAPI extends CordovaPlugin
         return this.cordova.getActivity().getApplicationContext();
     }
 
-    private ArrayOfObjects queryContentProvider(Uri collection, Object columns, String whereClause)
+    private ArrayOfObjects queryContentProvider(Uri collection, Object columns, String whereClause) throws JSONException
     {
-        final Cursor cursor = getContext().getContentResolver().query(collection, columns.values().toArray(new String[columns.values().size()]), whereClause, null, null);
+        final ArrayList<String> columnNames = new ArrayList<String>();
+        final ArrayList<String> columnValues = new ArrayList<String>();
+
+        Iterator<String> iteratorFields = columns.keys();
+
+        while(iteratorFields.hasNext())
+        {
+            String column = iteratorFields.next();
+
+            columnNames.add(column);
+            columnValues.add("" + columns.getString(column));
+        }
+
+        final Cursor cursor = getContext().getContentResolver().query(collection, columnValues.toArray(new String[columns.length()]), whereClause, null, null);
         final ArrayOfObjects buffer = new ArrayOfObjects();
 
         if (cursor.moveToFirst())
@@ -120,7 +141,7 @@ public class GalleryAPI extends CordovaPlugin
             {
                 Object item = new Object();
 
-                for (String column : columns.keySet())
+                for (String column : columnNames)
                 {
                     int columnIndex = cursor.getColumnIndex(columns.get(column).toString());
 
@@ -148,7 +169,7 @@ public class GalleryAPI extends CordovaPlugin
         return buffer;
     }
 
-    private class Object extends HashMap<String, java.lang.Object>
+    private class Object extends JSONObject
     {
 
     }
