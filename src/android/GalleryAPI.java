@@ -1,19 +1,16 @@
 package com.subitolabs.android.cordova.galleryapi;
 
-import android.app.Application;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
 
 import org.apache.cordova.*;
-import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.logging.Logger;
 
 public class GalleryAPI extends CordovaPlugin
 {
@@ -61,18 +58,44 @@ public class GalleryAPI extends CordovaPlugin
 
     private ArrayOfObjects getMedia(String bucket)
     {
-        Object columns = new Object(){{
+        Object columns = new Object()
+        {{
             put("id", MediaStore.Images.Media._ID);
+            put("data", MediaStore.MediaColumns.DATA);
             put("date_added", MediaStore.Images.ImageColumns.DATE_ADDED);
             put("title", MediaStore.Images.ImageColumns.DISPLAY_NAME);
             put("height", MediaStore.Images.ImageColumns.HEIGHT);
             put("width", MediaStore.Images.ImageColumns.WIDTH);
             put("orientation", MediaStore.Images.ImageColumns.ORIENTATION);
             put("mime_type", MediaStore.Images.ImageColumns.MIME_TYPE);
-            put("thumbnail_id", MediaStore.Images.ImageColumns.MINI_THUMB_MAGIC);
+            put("lat", MediaStore.Images.ImageColumns.LATITUDE);
+            put("lon", MediaStore.Images.ImageColumns.LONGITUDE);
+            put("size", MediaStore.Images.ImageColumns.SIZE);
         }};
 
-        return queryContentProvider(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, "bucket_display_name = \""+bucket+"\"");
+        Object thumbnailsColumns = new Object()
+        {{
+            put("id", MediaStore.Images.Media._ID);
+            put("data", MediaStore.MediaColumns.DATA);
+        }};
+
+        final ArrayOfObjects results    = queryContentProvider(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, "bucket_display_name = \""+bucket+"\"");
+        final ArrayOfObjects thumbnails = queryContentProvider(MediaStore.Images.Thumbnails.EXTERNAL_CONTENT_URI, thumbnailsColumns, MediaStore.Images.Thumbnails.KIND + " = " + MediaStore.Images.Thumbnails.MINI_KIND);
+
+        for (Object media : results)
+        {
+            for (Object thumbnail : thumbnails)
+            {
+                if (thumbnail.get("id").compareTo(media.get("id")) == 0)
+                {
+                    media.put("thumbnail", thumbnail.get("data"));
+
+                    break;
+                }
+            }
+        }
+
+        return results;
     }
 
     private Context getContext()
