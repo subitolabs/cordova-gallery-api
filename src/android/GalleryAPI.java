@@ -100,14 +100,7 @@ public class GalleryAPI extends CordovaPlugin
 
     private Context getContext()
     {
-        if (this.cordova != null && this.cordova.getActivity() != null)
-        {
-            return this.cordova.getActivity().getApplicationContext();
-        }
-        else
-        {
-            return MainActivity.context;
-        }
+        return this.cordova.getActivity().getApplicationContext();
     }
 
     private ArrayOfObjects queryContentProvider(Uri collection, Object columns, String whereClause)
