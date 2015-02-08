@@ -1,11 +1,28 @@
-var galleryAPI = {
-    getAlbums: function(successCallback, errorCallback) {
+function GalleryAPI()
+{
+    
+}
+
+GalleryAPI.prototype.getAlbums = function(successCallback, errorCallback) {
         cordova.exec(
-            successCallback, // success callback function
-            errorCallback, // error callback function
-            'GalleryAPI', // mapped to our native Java class called "CalendarPlugin"
-            'getAlbums', // with this action name
+            successCallback,
+            errorCallback,
+            'GalleryAPI',
+            'getAlbums',
             []
         );
      }
 };
+
+GalleryAPI.prototype.getMedia = function(albumName, successCallback, errorCallback) {
+        cordova.exec(
+            successCallback,
+            errorCallback,
+            'GalleryAPI',
+            'getMedia',
+            [albumName]
+        );
+     }
+};
+
+module.exports = new GalleryAPI();
