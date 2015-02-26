@@ -16,7 +16,8 @@
 
 @implementation ViewController
 
-- (void)viewDidLoad {
+- (void)viewDidLoad
+{
     [super viewDidLoad];
     
     GalleryAPI *api = [GalleryAPI alloc];
@@ -31,12 +32,20 @@
              {
                  for (NSDictionary *asset in assets)
                  {
-                     NSLog(@"----> Asset %@", [asset objectForKey:@"title"]);
+                     NSLog(@"----> Asset %@ %@", [asset objectForKey:@"title"], [asset objectForKey:@"thumbnail"]);
                  }
+             }
+             andErrorHandler:^(NSString *error)
+             {
+                 NSLog(@"<!> ERROR: %@ <!>", error);
              }];
         }
         
-    }];
+    }
+     withErrorHandler:^(NSString *error)
+     {
+         NSLog(@"<!> ERROR: %@ <!>", error);
+     }];
 }
 
 - (void)didReceiveMemoryWarning {

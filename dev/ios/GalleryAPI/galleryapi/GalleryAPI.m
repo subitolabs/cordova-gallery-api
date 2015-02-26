@@ -14,7 +14,7 @@
 
 @implementation GalleryAPI
 
-- (void) getAlbums:(void (^) (NSArray *))successHandler
+- (void) getAlbums:(void (^) (NSArray *))successHandler withErrorHandler:(void (^) (NSString *))errorHandler
 {
     __block ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
     __block NSMutableArray *albums = [[NSMutableArray alloc] init];
@@ -28,18 +28,20 @@
          else
          {
              [albums addObject:@{
+                                 @"id" : [group valueForProperty:ALAssetsGroupPropertyPersistentID],
                                  @"title" : [group valueForProperty:ALAssetsGroupPropertyName],
                                  @"assets" : [NSString stringWithFormat:@"%ld", group.numberOfAssets]
                                  }];
          }
          
-     } failureBlock: ^(NSError *error) {
-         // Typically you should handle an error more gracefully than this.
-         NSLog(@"No groups");
+     }
+     failureBlock: ^(NSError *error)
+    {
+        errorHandler(error.localizedDescription);
      }];
 }
 
-- (void) getAlbumAssets:(NSString*) album withSuccessHandler:(void (^) (NSArray *))successHandler
+- (void) getAlbumAssets:(NSString*) album withSuccessHandler:(void (^) (NSArray *))successHandler andErrorHandler:(void (^)(NSString *))errorHandler
 {
     __block ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
     __block NSMutableArray *assets = [[NSMutableArray alloc] init];
@@ -64,11 +66,21 @@
                       else
                       {
                           ALAssetRepresentation *representation = result.defaultRepresentation;
+                          CGSize dimensions = representation.dimensions;
+                        
                           
                           [assets addObject:@{
+                                              @"id" : [[result valueForProperty:ALAssetPropertyAssetURL] absoluteString],
                                               @"title" : representation.filename,
-                                              }];
-                          
+                                              @"orientation" : @"up",
+                                              @"lat" : @4,
+                                              @"lng" : @5,
+                                              @"width" : [NSNumber numberWithFloat:dimensions.width],
+                                              @"height" : [NSNumber numberWithFloat:dimensions.height],
+                                              @"size" : [NSNumber numberWithLongLong:representation.size],
+                                              @"data" : representation.url.absoluteString,
+                                              @"thumbnail" : representation.url.absoluteString
+                          }];
                       }
                   }
                   ];
@@ -76,10 +88,10 @@
              
          }
      }
-                         failureBlock: ^(NSError *error) {
-                             // Typically you should handle an error more gracefully than this.
-                             NSLog(@"No groups");
-                         }];
+     failureBlock: ^(NSError *error)
+    {
+         errorHandler(error.localizedDescription);
+    }];
 }
 
 @end
