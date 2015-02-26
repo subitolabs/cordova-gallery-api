@@ -4,7 +4,7 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
-		<key>GalleryAPI.xcscheme</key>
+		<key>galleryapi.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
 			<integer>0</integer>
@@ -12,12 +12,12 @@
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
-		<key>E285613B1A87F31E00AFAC09</key>
+		<key>E2E210481A9F682E003EA1E8</key>
 		<dict>
 			<key>primary</key>
 			<true/>
 		</dict>
-		<key>E28561501A87F31E00AFAC09</key>
+		<key>E2E210611A9F682E003EA1E8</key>
 		<dict>
 			<key>primary</key>
 			<true/>

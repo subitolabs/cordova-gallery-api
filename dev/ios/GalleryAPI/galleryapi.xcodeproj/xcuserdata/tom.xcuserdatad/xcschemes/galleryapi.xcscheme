@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "E285613B1A87F31E00AFAC09"
-               BuildableName = "GalleryAPI.app"
-               BlueprintName = "GalleryAPI"
-               ReferencedContainer = "container:GalleryAPI.xcodeproj">
+               BlueprintIdentifier = "E2E210481A9F682E003EA1E8"
+               BuildableName = "galleryapi.app"
+               BlueprintName = "galleryapi"
+               ReferencedContainer = "container:galleryapi.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -28,10 +28,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "E28561501A87F31E00AFAC09"
-               BuildableName = "GalleryAPITests.xctest"
-               BlueprintName = "GalleryAPITests"
-               ReferencedContainer = "container:GalleryAPI.xcodeproj">
+               BlueprintIdentifier = "E2E210611A9F682E003EA1E8"
+               BuildableName = "galleryapiTests.xctest"
+               BlueprintName = "galleryapiTests"
+               ReferencedContainer = "container:galleryapi.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,20 +46,20 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "E28561501A87F31E00AFAC09"
-               BuildableName = "GalleryAPITests.xctest"
-               BlueprintName = "GalleryAPITests"
-               ReferencedContainer = "container:GalleryAPI.xcodeproj">
+               BlueprintIdentifier = "E2E210611A9F682E003EA1E8"
+               BuildableName = "galleryapiTests.xctest"
+               BlueprintName = "galleryapiTests"
+               ReferencedContainer = "container:galleryapi.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "E285613B1A87F31E00AFAC09"
-            BuildableName = "GalleryAPI.app"
-            BlueprintName = "GalleryAPI"
-            ReferencedContainer = "container:GalleryAPI.xcodeproj">
+            BlueprintIdentifier = "E2E210481A9F682E003EA1E8"
+            BuildableName = "galleryapi.app"
+            BlueprintName = "galleryapi"
+            ReferencedContainer = "container:galleryapi.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </TestAction>
@@ -75,10 +75,10 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "E285613B1A87F31E00AFAC09"
-            BuildableName = "GalleryAPI.app"
-            BlueprintName = "GalleryAPI"
-            ReferencedContainer = "container:GalleryAPI.xcodeproj">
+            BlueprintIdentifier = "E2E210481A9F682E003EA1E8"
+            BuildableName = "galleryapi.app"
+            BlueprintName = "galleryapi"
+            ReferencedContainer = "container:galleryapi.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <AdditionalOptions>
@@ -93,10 +93,10 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "E285613B1A87F31E00AFAC09"
-            BuildableName = "GalleryAPI.app"
-            BlueprintName = "GalleryAPI"
-            ReferencedContainer = "container:GalleryAPI.xcodeproj">
+            BlueprintIdentifier = "E2E210481A9F682E003EA1E8"
+            BuildableName = "galleryapi.app"
+            BlueprintName = "galleryapi"
+            ReferencedContainer = "container:galleryapi.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
