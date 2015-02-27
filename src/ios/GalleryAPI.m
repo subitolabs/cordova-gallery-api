@@ -39,8 +39,9 @@
      }];
 }
 
-- (void) getAlbumAssets:(NSString*) album withSuccessHandler:(void (^) (NSArray *))successHandler andErrorHandler:(void (^)(NSString *))errorHandler
+- (void) getMedia:(CDVInvokedUrlCommand*)command
 {
+    NSString *album = [command argumentAtIndex:0];
     __block ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
     __block NSMutableArray *assets = [[NSMutableArray alloc] init];
     
@@ -48,7 +49,9 @@
      {
          if (group == nil)
          {
-             successHandler(assets);
+            CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:assets];
+
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
          }
          else
          {
@@ -59,14 +62,15 @@
                   {
                       if(result == nil)
                       {
-                          successHandler(assets);
+                            CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:assets];
+
+                            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
                       }
                       else
                       {
                           ALAssetRepresentation *representation = result.defaultRepresentation;
                           CGSize dimensions = representation.dimensions;
                         
-                          
                           [assets addObject:@{
                                               @"id" : [[result valueForProperty:ALAssetPropertyAssetURL] absoluteString],
                                               @"title" : representation.filename,
@@ -88,7 +92,9 @@
      }
      failureBlock: ^(NSError *error)
     {
-         errorHandler(error.localizedDescription);
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.localizedDescription];
+
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
 }
 
