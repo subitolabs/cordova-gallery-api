@@ -2,7 +2,7 @@
 #import <AssetsLibrary/ALAssetsGroup.h>
 #import <Cordova/CDVPlugin.h>
 
-@interface GalleryAPI : NSObject
+@interface GalleryAPI : CDVPlugin
 
 - (void) getAlbums:(CDVInvokedUrlCommand*)command;
 
