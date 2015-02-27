@@ -6,6 +6,6 @@
 
 - (void) getAlbums:(CDVInvokedUrlCommand*)command;
 
-- (void) getAlbumAssets:(NSString*) album withSuccessHandler:(void (^) (NSArray *))successHandler andErrorHandler:(void (^) (NSString *))errorHandler;
+- (void) getMedia:(CDVInvokedUrlCommand*)command;
 
 @end
