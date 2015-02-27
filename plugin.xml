@@ -4,7 +4,7 @@
     xmlns:rim="http://www.blackberry.com/ns/widgets"
     xmlns:android="http://schemas.android.com/apk/res/android"
     id="com.subitolabs.android.cordova.galleryapi"
-    version="0.1">
+    version="0.2">
     <name>GalleryAPI</name>
     <description>Cordova gallery API plugin</description>
     <license>MIT</license>
