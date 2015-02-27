@@ -29,7 +29,7 @@ document.addEventListener('deviceready', function()
             {
                 var media = items[i];
 
-                html += '<a href="javascript:void()" class="media"><img src="file://' + media.thumbnail + '" /></a>';
+                html += '<a href="javascript:void()" class="media"><img src="' + media.thumbnail + '" /></a>';
             }
 
             $content.innerHTML = html;
