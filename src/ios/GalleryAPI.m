@@ -55,7 +55,7 @@
          }
          else
          {
-             if (album == [group valueForProperty:ALAssetsGroupPropertyName])
+             if ([album isEqualToString:[group valueForProperty:ALAssetsGroupPropertyName]])
              {
                  [group enumerateAssetsWithOptions:NSEnumerationReverse usingBlock:
                   ^(ALAsset *result, NSUInteger index, BOOL *stop)
