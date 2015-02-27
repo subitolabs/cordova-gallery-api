@@ -4,7 +4,7 @@
 
 @interface GalleryAPI : NSObject
 
-- (void) getAlbums:(void (^) (NSArray *))successHandler withErrorHandler:(void (^) (NSString *))errorHandler;
+- (void) getAlbums:(CDVInvokedUrlCommand*)command;
 
 - (void) getAlbumAssets:(NSString*) album withSuccessHandler:(void (^) (NSArray *))successHandler andErrorHandler:(void (^) (NSString *))errorHandler;
 
