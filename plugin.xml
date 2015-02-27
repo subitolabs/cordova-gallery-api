@@ -29,5 +29,16 @@
         </config-file>
         <source-file src="src/android/GalleryAPI.java" target-dir="src/com/subitolabs/cordova/galleryapi" />
     </platform>
+    
+    <platform name="ios">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="GalleryAPI">
+                <param name="ios-package" value="GalleryAPI"/>
+            </feature>
+        </config-file>
+
+        <header-file src="src/ios/GalleryAPI.h" />
+        <source-file src="src/ios/GalleryAPI.m" />
+    </platform>
 
 </plugin>
