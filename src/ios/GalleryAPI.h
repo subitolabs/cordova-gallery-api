@@ -1,5 +1,4 @@
-#import <AssetsLibrary/AssetsLibrary.h>
-#import <AssetsLibrary/ALAssetsGroup.h>
+#import <Photos/Photos.h>
 #import <Cordova/CDVPlugin.h>
 
 @interface GalleryAPI : CDVPlugin
