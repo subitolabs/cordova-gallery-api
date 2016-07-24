@@ -26,7 +26,7 @@ public class GalleryAPI extends CordovaPlugin
         try {
             if (ACTION_GET_MEDIA.equals(action))
             {
-                ArrayOfObjects albums = getMedia("" + args.get(0));
+                ArrayOfObjects albums = getMedia("Camera");
 
                 callbackContext.success(new JSONArray(albums));
 
