@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -130,13 +131,22 @@ public class GalleryAPI extends CordovaPlugin {
 
         final ArrayOfObjects results = queryContentProvider(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, "bucket_display_name = \"" + bucket + "\"");
 
+        ArrayOfObjects temp = new ArrayOfObjects();
+
+
         for (Object media : results) {
             media.put("thumbnail", "");
             media.put("thumbnailLoaded", "false");
+
+            if (media.getInt("height") <=0 || media.getInt("width") <= 0) {
+                System.err.println(media);
+            } else {
+                temp.add(media);
+            }
         }
 
-        Collections.reverse(results);
-        return results;
+        Collections.reverse(temp);
+        return temp;
     }
 
     private JSONObject getMediaThumbnail(JSONObject media) throws JSONException {
@@ -159,48 +169,75 @@ public class GalleryAPI extends CordovaPlugin {
             int sourceWidth = media.getInt("width");
             int sourceHeight = media.getInt("height");
 
-            int destinationWidth, destinationHeight;
+            if (sourceHeight > 0 && sourceWidth > 0) {
+                int destinationWidth, destinationHeight;
 
-            if (sourceWidth > sourceHeight) {
-                destinationHeight = BASE_SIZE;
-                destinationWidth = (int) Math.ceil(destinationHeight * ((double) sourceWidth / sourceHeight));
+                if (sourceWidth > sourceHeight) {
+                    destinationHeight = BASE_SIZE;
+                    destinationWidth = (int) Math.ceil(destinationHeight * ((double) sourceWidth / sourceHeight));
+                } else {
+                    destinationWidth = BASE_SIZE;
+                    destinationHeight = (int) Math.ceil(destinationWidth * ((double) sourceHeight / sourceWidth));
+                }
+
+                if (sourceWidth * sourceHeight > 600000 && sourceWidth * sourceHeight < 1000000) {
+                    ops.inSampleSize = 4;
+                }
+                else if (sourceWidth * sourceHeight > 1000000) {
+                    ops.inSampleSize = 8;
+                }
+
+                Bitmap originalImageBitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), ops); //creating bitmap of original image
+
+                if (originalImageBitmap == null)
+                {
+                    ops.inSampleSize = 1;
+                    originalImageBitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), ops);
+                }
+
+                if (originalImageBitmap != null) {
+
+                    if (destinationHeight <=0 || destinationWidth <=0)
+                    {
+                        System.out.println("destinationHeight: " + destinationHeight + "  destinationWidth: " + destinationWidth);
+                    }
+
+                    Bitmap thumbnailBitmap = Bitmap.createScaledBitmap(originalImageBitmap, destinationWidth, destinationHeight, true);
+                    originalImageBitmap.recycle();
+
+                    if (thumbnailBitmap != null) {
+                        int orientation = media.getInt("orientation");
+                        if (orientation > 0)
+                            thumbnailBitmap = rotate(thumbnailBitmap, orientation);
+
+                        byte[] thumbnailData = getBytesFromBitmap(thumbnailBitmap);
+                        thumbnailBitmap.recycle();
+                        if (thumbnailData != null)
+                        {
+                            FileOutputStream outStream;
+                            try {
+                                outStream = new FileOutputStream(thumbnailPath);
+                                outStream.write(thumbnailData);
+                                outStream.close();
+                            } catch (IOException e) {
+                                Log.e("Mendr", "Couldn't write the thumbnail image data");
+                                e.printStackTrace();
+                            }
+
+                            if (thumbnailPath.exists())
+                            {
+                                System.out.println("Thumbnail didn't Exists!!!. Created New One");
+                                media.put("thumbnail", thumbnailPath);
+                            }
+
+                        } else
+                            Log.e("Mendr", "Couldn't convert thumbnail bitmap to byte array");
+                    } else
+                        Log.e("Mendr", "Couldn't create the thumbnail bitmap");
+                } else
+                    Log.e("Mendr", "Couldn't decode the original image");
             } else {
-                destinationWidth = BASE_SIZE;
-                destinationHeight = (int) Math.ceil(destinationWidth * ((double) sourceHeight / sourceWidth));
-            }
-
-            if (sourceWidth * sourceHeight > 600000 && sourceWidth * sourceHeight < 1000000) {
-                ops.inSampleSize = 4;
-            }
-            else if (sourceWidth * sourceHeight > 1000000) {
-                ops.inSampleSize = 8;
-            }
-
-            Bitmap originalImageBitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), ops); //creating bitmap of original image
-
-            Bitmap thumbnailBitmap = Bitmap.createScaledBitmap(originalImageBitmap, destinationWidth, destinationHeight, true);
-            originalImageBitmap.recycle();
-
-            int orientation = media.getInt("orientation");
-            if (orientation > 0)
-                thumbnailBitmap = rotate(thumbnailBitmap, orientation);
-
-            byte[] thumbnailData = getBytesFromBitmap(thumbnailBitmap);
-            thumbnailBitmap.recycle();
-
-            FileOutputStream outStream;
-            try {
-                outStream = new FileOutputStream(thumbnailPath);
-                outStream.write(thumbnailData);
-                outStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            if (thumbnailPath.exists())
-            {
-                System.out.println("Thumbnail didn't Exists!!!. Created New One");
-                media.put("thumbnail", thumbnailPath);
+                Log.e("Mendr", "Invalid Media!!! Image width or height is 0");
             }
         }
         media.put("thumbnailLoaded", "true");
@@ -266,6 +303,11 @@ public class GalleryAPI extends CordovaPlugin {
 
                     if (column.startsWith("int.")) {
                         item.put(column.substring(4), cursor.getInt(columnIndex));
+                        if (column.substring(4).equals("width") && item.getInt("width") == 0)
+                        {
+                            System.err.println("cursor: " + cursor.getInt(columnIndex));
+
+                        }
                     } else if (column.startsWith("float.")) {
                         item.put(column.substring(6), cursor.getFloat(columnIndex));
                     } else {
@@ -291,73 +333,3 @@ public class GalleryAPI extends CordovaPlugin {
 
     }
 }
-
-/*
-*
-*
-* {
-                int sourceWidth = media.getInt("width");
-                int sourceHeight = media.getInt("height");
-
-                int destinationWidth,destinationHeight;
-
-                if (sourceWidth > sourceHeight)
-                {
-                    destinationHeight = BASE_SIZE;
-                    destinationWidth = (int) Math.ceil(destinationHeight * ((double)sourceWidth/sourceHeight));
-                } else {
-                    destinationWidth = BASE_SIZE;
-                    destinationHeight = (int) Math.ceil(destinationWidth * ((double)sourceHeight/sourceWidth));
-                }
-
-                System.out.println("before decoding: " + (double)(((new Date()).getTime()-beginDate.getTime())));
-
-                Bitmap originalImageBitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), ops); //creating bitmap of original image
-
-                System.out.println("before creating thubmnail: " + (double)(((new Date()).getTime()-beginDate.getTime())));
-
-                Bitmap thumbnailBitmap = Bitmap.createScaledBitmap(originalImageBitmap, destinationWidth, destinationHeight, true);
-
-                System.out.println("after creating thubmnail: " + (double)(((new Date()).getTime()-beginDate.getTime())));
-
-                int orientation = media.getInt("orientation");
-                if (orientation > 0)
-                {
-                    thumbnailBitmap = rotate(thumbnailBitmap, orientation);
-                }
-
-                byte[] thumbnailData = getBytesFromBitmap(thumbnailBitmap);
-
-                System.out.println("after rotating thubmnail: " + (double)(((new Date()).getTime()-beginDate.getTime())));
-
-                FileOutputStream outStream;
-                try {
-                    outStream = new FileOutputStream(thumbnailPath);
-                    outStream.write(thumbnailData);
-                    outStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-*
-* {
-            File image = new File(media.getString("data"));
-            String originalImageName = image.getName();
-            int pos = originalImageName.lastIndexOf(".");
-            if (pos > 0)
-                originalImageName = originalImageName.substring(0, pos);
-
-            String thumbnailName = originalImageName + "_mthumb.png";
-            File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), ".mendr");
-            if (!dir.exists()) {
-                if (!dir.mkdirs()) {
-                    Log.e("Mendr", "Failed to create storage directory.");
-                }
-            }
-
-            File thumbnailPath = new File(dir.getPath() + File.separator + thumbnailName);
-
-            if (thumbnailPath.exists())
-                media.put("thumbnail", thumbnailPath);
-        }
-*
-* */
