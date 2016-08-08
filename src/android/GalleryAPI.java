@@ -2,6 +2,7 @@ package com.subitolabs.cordova.galleryapi;
 
 
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -21,10 +22,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Iterator;
-import java.util.logging.Logger;
 
 public class GalleryAPI extends CordovaPlugin {
     public static final String ACTION_GET_MEDIA = "getMedia";
@@ -96,7 +95,21 @@ public class GalleryAPI extends CordovaPlugin {
             put("title", MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME);
         }};
 
-        return queryContentProvider(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, "1) GROUP BY 1,(2");
+        final ArrayOfObjects results = queryContentProvider(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, "1) GROUP BY 1,(2");
+
+        Object collection = null;
+        for (int i = 0; i < results.size(); i++ ) {
+            collection = results.get(i);
+            if (collection.getString("title").equals("Camera")) {
+                results.remove(i);
+                break;
+            }
+        }
+
+        if (collection != null)
+            results.add(0, collection);
+
+        return results;
     }
 
     private ArrayOfObjects getMedia(String bucket) throws JSONException {
@@ -118,11 +131,11 @@ public class GalleryAPI extends CordovaPlugin {
         final ArrayOfObjects results = queryContentProvider(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, "bucket_display_name = \"" + bucket + "\"");
 
         for (Object media : results) {
-            File thumbnailPath = thumbnailPathFromMediaId(media.getString("id"));
-            if (thumbnailPath.exists())
-                media.put("thumbnail", thumbnailPath);
+            media.put("thumbnail", "");
+            media.put("thumbnailLoaded", "false");
         }
 
+        Collections.reverse(results);
         return results;
     }
 
@@ -138,7 +151,7 @@ public class GalleryAPI extends CordovaPlugin {
             {
                 ops = new BitmapFactory.Options();
                 ops.inJustDecodeBounds = false;
-                ops.inSampleSize = 8;
+                ops.inSampleSize = 1;
             }
 
             File image = new File(media.getString("data"));
@@ -156,16 +169,17 @@ public class GalleryAPI extends CordovaPlugin {
                 destinationHeight = (int) Math.ceil(destinationWidth * ((double) sourceHeight / sourceWidth));
             }
 
-//            System.out.println("before decoding: " + (double)(((new Date()).getTime()-beginDate.getTime())));
+            if (sourceWidth * sourceHeight > 600000 && sourceWidth * sourceHeight < 1000000) {
+                ops.inSampleSize = 4;
+            }
+            else if (sourceWidth * sourceHeight > 1000000) {
+                ops.inSampleSize = 8;
+            }
 
             Bitmap originalImageBitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), ops); //creating bitmap of original image
 
-//            System.out.println("before creating thubmnail: " + (double)(((new Date()).getTime()-beginDate.getTime())));
-
             Bitmap thumbnailBitmap = Bitmap.createScaledBitmap(originalImageBitmap, destinationWidth, destinationHeight, true);
             originalImageBitmap.recycle();
-
-//            System.out.println("after creating thubmnail: " + (double)(((new Date()).getTime()-beginDate.getTime())));
 
             int orientation = media.getInt("orientation");
             if (orientation > 0)
@@ -173,7 +187,6 @@ public class GalleryAPI extends CordovaPlugin {
 
             byte[] thumbnailData = getBytesFromBitmap(thumbnailBitmap);
             thumbnailBitmap.recycle();
-//            System.out.println("after rotating thubmnail: " + (double)(((new Date()).getTime()-beginDate.getTime())));
 
             FileOutputStream outStream;
             try {
@@ -190,6 +203,7 @@ public class GalleryAPI extends CordovaPlugin {
                 media.put("thumbnail", thumbnailPath);
             }
         }
+        media.put("thumbnailLoaded", "true");
 
         return media;
     }
@@ -210,7 +224,7 @@ public class GalleryAPI extends CordovaPlugin {
         File thumbnailPath = null;
 
         String thumbnailName = mediaId + "_mthumb.png";
-        File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), DIR_NAME);
+        File dir = new File(this.getContext().getApplicationInfo().dataDir, DIR_NAME);
         if (!dir.exists()) {
             if (!dir.mkdirs()) {
                 Log.e("Mendr", "Failed to create storage directory.");
