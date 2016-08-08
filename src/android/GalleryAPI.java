@@ -136,7 +136,7 @@ public class GalleryAPI extends CordovaPlugin {
 
         for (Object media : results) {
             media.put("thumbnail", "");
-            media.put("thumbnailLoaded", "false");
+            media.put("error", "false");
 
             if (media.getInt("height") <=0 || media.getInt("width") <= 0) {
                 System.err.println(media);
@@ -150,6 +150,7 @@ public class GalleryAPI extends CordovaPlugin {
     }
 
     private JSONObject getMediaThumbnail(JSONObject media) throws JSONException {
+
         File thumbnailPath = thumbnailPathFromMediaId(media.getString("id"));
         if (thumbnailPath.exists())
         {
@@ -163,6 +164,7 @@ public class GalleryAPI extends CordovaPlugin {
                 ops.inJustDecodeBounds = false;
                 ops.inSampleSize = 1;
             }
+            media.put("error", "true");
 
             File image = new File(media.getString("data"));
 
@@ -228,19 +230,17 @@ public class GalleryAPI extends CordovaPlugin {
                             {
                                 System.out.println("Thumbnail didn't Exists!!!. Created New One");
                                 media.put("thumbnail", thumbnailPath);
+                                media.put("error", "false");
                             }
-
                         } else
                             Log.e("Mendr", "Couldn't convert thumbnail bitmap to byte array");
                     } else
                         Log.e("Mendr", "Couldn't create the thumbnail bitmap");
                 } else
                     Log.e("Mendr", "Couldn't decode the original image");
-            } else {
+            } else
                 Log.e("Mendr", "Invalid Media!!! Image width or height is 0");
-            }
         }
-        media.put("thumbnailLoaded", "true");
 
         return media;
     }

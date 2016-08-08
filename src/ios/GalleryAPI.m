@@ -103,7 +103,7 @@
                                                @"size" : @0,
                                                @"data" : originalImagePath,
                                                @"thumbnail" : @"",
-                                               @"thumbnailLoaded" : @(false)
+                                               @"error" : @"false"
                                                }];
                            
                        }];
@@ -130,11 +130,14 @@
         
         NSFileManager* fileMgr = [[NSFileManager alloc] init];
         
-        media[@"thumbnail"] = thumbnailPath;
         if ([fileMgr fileExistsAtPath:thumbnailPath])
+        {
+            media[@"thumbnail"] = thumbnailPath;
             NSLog(@"file exist");
+        }
         else {
             NSLog(@"file doesn't exist");
+            media[@"error"] = @"true";
             
             PHFetchResult *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[media[@"id"]]
                                                                      options:nil];
@@ -149,10 +152,11 @@
                                                         if (result)
                                                         {
                                                             NSError* err = nil;
-                                                            if (![UIImagePNGRepresentation(result) writeToFile:thumbnailPath
+                                                            if ([UIImagePNGRepresentation(result) writeToFile:thumbnailPath
                                                                                                        options:NSAtomicWrite
                                                                                                          error:&err])
-                                                            {
+                                                                media[@"error"] = @"false";
+                                                            else {
                                                                 if (err)
                                                                 {
                                                                     media[@"thumbnail"] = @"";
