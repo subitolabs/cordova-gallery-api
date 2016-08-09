@@ -43,7 +43,8 @@ public class GalleryAPI extends CordovaPlugin {
                 cordova.getThreadPool().execute(new Runnable() {
                     public void run() {
                         try {
-                            ArrayOfObjects albums = getMedia("" + args.get(0));
+                            JSONObject object = (JSONObject) args.get(0);
+                            ArrayOfObjects albums = getMedia(object.getString("title"));
                             callbackContext.success(new JSONArray(albums));
                         } catch (Exception e) {
                             e.printStackTrace();

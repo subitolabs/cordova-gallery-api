@@ -11,118 +11,108 @@
 
 - (void) getAlbums:(CDVInvokedUrlCommand*)command
 {
-    NSArray *subtypes = @[@(PHAssetCollectionSubtypeAlbumRegular),
-                          @(PHAssetCollectionSubtypeAlbumImported),
-                          @(PHAssetCollectionSubtypeAlbumMyPhotoStream),
-                          @(PHAssetCollectionSubtypeAlbumCloudShared),
-                          @(PHAssetCollectionSubtypeSmartAlbumFavorites),
-                          @(PHAssetCollectionSubtypeSmartAlbumRecentlyAdded),
-                          @(PHAssetCollectionSubtypeSmartAlbumUserLibrary),
-                          @(PHAssetCollectionSubtypeSmartAlbumSelfPortraits),
-                          @(PHAssetCollectionSubtypeSmartAlbumScreenshots)
-                          ];
-    
-    __block NSMutableArray *albums = [[NSMutableArray alloc] init];
-    NSArray *collectionTypes = @[
-                                 @{@"title" : @"smart", @"type" : [NSNumber numberWithInteger: PHAssetCollectionTypeSmartAlbum]},
-                                 @{@"title" : @"album", @"type" : [NSNumber numberWithInteger:PHAssetCollectionTypeAlbum]}
-                                 ];
-    
-    for (NSDictionary *collectionType in collectionTypes)
-    {
-        [[PHAssetCollection fetchAssetCollectionsWithType:[[collectionType objectForKey:@"type"] integerValue] subtype:PHAssetCollectionSubtypeAny options:nil] enumerateObjectsUsingBlock:^(PHAssetCollection *collection, NSUInteger idx, BOOL *stop)
-         {
-             if (collection != nil && collection.localizedTitle != nil && collection.localIdentifier != nil && ([subtypes indexOfObject:@(collection.assetCollectionSubtype)] != NSNotFound))
+    [self.commandDelegate runInBackground:^{
+        NSDictionary *subtypes = [GalleryAPI subtypes];
+        __block NSMutableArray *albums = [[NSMutableArray alloc] init];
+        __block NSDictionary *cameraRoll;
+        
+        NSArray *collectionTypes = @[
+                                     @{@"title" : @"smart", @"type" : [NSNumber numberWithInteger: PHAssetCollectionTypeSmartAlbum]},
+                                     @{@"title" : @"album", @"type" : [NSNumber numberWithInteger:PHAssetCollectionTypeAlbum]}
+                                     ];
+        
+        for (NSDictionary *collectionType in collectionTypes)
+        {
+            [[PHAssetCollection fetchAssetCollectionsWithType:[[collectionType objectForKey:@"type"] integerValue] subtype:PHAssetCollectionSubtypeAny options:nil] enumerateObjectsUsingBlock:^(PHAssetCollection *collection, NSUInteger idx, BOOL *stop)
              {
-                 PHFetchResult* result = [PHAsset fetchAssetsInAssetCollection:collection
-                                                                       options:nil];
-                 if (result.count > 0)
-                     [albums addObject:@{
-                                         @"id" : collection.localIdentifier,
-                                         @"title" : collection.localizedTitle,
-                                         @"type" : [collectionType objectForKey:@"title"],
-                                         @"assets" : [NSString stringWithFormat:@"%ld", (long) collection.estimatedAssetCount]
-                                         }];
-             }
-         }];
-    }
-    
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:albums];
-    
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                 if (collection != nil && collection.localizedTitle != nil && collection.localIdentifier != nil && ([subtypes.allKeys indexOfObject:@(collection.assetCollectionSubtype)] != NSNotFound))
+                 {
+                     PHFetchResult* result = [PHAsset fetchAssetsInAssetCollection:collection
+                                                                           options:nil];
+                     if (result.count > 0) {
+                         if ([collection.localizedTitle isEqualToString:@"Camera Roll"] && collection.assetCollectionType == PHAssetCollectionTypeSmartAlbum) {
+                             cameraRoll = @{
+                                            @"id" : collection.localIdentifier,
+                                            @"title" : collection.localizedTitle,
+                                            @"type" : subtypes[@(collection.assetCollectionSubtype)],
+                                            @"assets" : [NSString stringWithFormat:@"%ld", (long) collection.estimatedAssetCount]
+                                            };
+                         } else {
+                             [albums addObject:@{
+                                                 @"id" : collection.localIdentifier,
+                                                 @"title" : collection.localizedTitle,
+                                                 @"type" : subtypes[@(collection.assetCollectionSubtype)],
+                                                 @"assets" : [NSString stringWithFormat:@"%ld", (long) collection.estimatedAssetCount]
+                                                 }];
+                         }
+                     }
+                 }
+             }];
+        }
+        
+        if (cameraRoll)
+            [albums insertObject:cameraRoll atIndex:0];
+        
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:albums];
+        
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
 }
 
 - (void) getMedia:(CDVInvokedUrlCommand*)command
 {
-    NSString *album = [command argumentAtIndex:0];
-    __block NSMutableArray *assets = [[NSMutableArray alloc] init];
-    __block PHImageRequestOptions * imageRequestOptions = [[PHImageRequestOptions alloc] init];
-    
-    imageRequestOptions.synchronous = YES;
-    
-    NSArray *collectionTypes = @[
-                                 @{@"title" : @"smart", @"type" : [NSNumber numberWithInteger: PHAssetCollectionTypeSmartAlbum]},
-                                 @{@"title" : @"album", @"type" : [NSNumber numberWithInteger:PHAssetCollectionTypeAlbum]}
-                                 ];
-    
-    for (NSDictionary *collectionType in collectionTypes)
-    {
-        [[PHAssetCollection fetchAssetCollectionsWithType:[[collectionType objectForKey:@"type"] integerValue]
-                                                  subtype:PHAssetCollectionSubtypeAny
-                                                  options:nil] enumerateObjectsUsingBlock:^(PHAssetCollection *collection, NSUInteger idx, BOOL *stop)
-         {
-             if (collection != nil && collection.localizedTitle != nil && [album isEqualToString:collection.localizedTitle])
+    [self.commandDelegate runInBackground:^{
+        NSDictionary *subtypes = [GalleryAPI subtypes];
+        NSDictionary *album = [command argumentAtIndex:0];
+        __block NSMutableArray *assets = [[NSMutableArray alloc] init];
+        __block PHImageRequestOptions * imageRequestOptions = [[PHImageRequestOptions alloc] init];
+        imageRequestOptions.synchronous = YES;
+        imageRequestOptions.resizeMode = PHImageRequestOptionsResizeModeFast;
+        
+        PHFetchResult *collections = [PHAssetCollection fetchAssetCollectionsWithLocalIdentifiers:@[album[@"id"]]
+                                                                                          options:nil];
+        
+        if (collections && collections.count > 0) {
+            PHAssetCollection *collection = collections[0];
+            [[PHAsset fetchAssetsInAssetCollection:collection
+                                           options:nil] enumerateObjectsUsingBlock:^(PHAsset *obj, NSUInteger idx, BOOL *stop)
              {
-                 [[PHAsset fetchAssetsInAssetCollection:collection options:nil] enumerateObjectsUsingBlock:^(PHAsset *obj, NSUInteger idx, BOOL *stop)
-                  {
-                      [[PHImageManager defaultManager]
-                       requestImageDataForAsset:obj
-                       options:imageRequestOptions
-                       resultHandler:^(NSData *imageData, NSString *dataUTI,
-                                       UIImageOrientation orientation,
-                                       NSDictionary *info)
-                       {
-                           NSString *imageName = @"";
-                           NSString *originalImagePath = @"";
-                           
-                           if ([info objectForKey:@"PHImageFileUTIKey"])
-                               imageName = [info objectForKey:@"PHImageFileUTIKey"];
-                           
-                           if ([info objectForKey:@"PHImageFileURLKey"]){
-                               originalImagePath = [[info objectForKey:@"PHImageFileURLKey"] absoluteString];
-                           }
-                           
-                           [assets addObject:@{
-                                               @"id" : obj.localIdentifier,
-                                               @"title" : imageName,
-                                               @"orientation" : @"up",
-                                               @"lat" : @4,
-                                               @"lng" : @5,
-                                               @"width" : [NSNumber numberWithFloat:obj.pixelWidth],
-                                               @"height" : [NSNumber numberWithFloat:obj.pixelHeight],
-                                               @"size" : @0,
-                                               @"data" : originalImagePath,
-                                               @"thumbnail" : @"",
-                                               @"error" : @"false"
-                                               }];
-                           
-                       }];
-                  }];
-             }
-         }];
-    }
-    
-    NSArray* reversedAssests = [[assets reverseObjectEnumerator] allObjects];
-    
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:reversedAssests];
-    
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                 [assets addObject:@{
+                                     @"id" : obj.localIdentifier,
+                                     @"title" : @"",
+                                     @"orientation" : @"up",
+                                     @"lat" : @4,
+                                     @"lng" : @5,
+                                     @"width" : [NSNumber numberWithFloat:obj.pixelWidth],
+                                     @"height" : [NSNumber numberWithFloat:obj.pixelHeight],
+                                     @"size" : @0,
+                                     @"data" : @"",
+                                     @"thumbnail" : @"",
+                                     @"error" : @"false",
+                                     @"type":subtypes[@(collection.assetCollectionSubtype)]
+                                     }];
+             }];
+        }
+        
+        NSArray* reversedAssests = [[assets reverseObjectEnumerator] allObjects];
+        
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:reversedAssests];
+        
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
 }
 
 - (void) getMediaThumbnail:(CDVInvokedUrlCommand*)command {
     // Check command.arguments here.
     [self.commandDelegate runInBackground:^{
+        
+        PHImageRequestOptions *options = [PHImageRequestOptions new];
+        options.synchronous = YES;
+        options.resizeMode = PHImageRequestOptionsResizeModeFast;
+        
         NSMutableDictionary *media = [command argumentAtIndex:0];
+        
+        NSLog(@"media id %@", media[@"id"]);
         
         NSString *imageId = [media[@"id"] stringByReplacingOccurrencesOfString:@"/" withString:@"^"];
         NSString* docsPath = [NSTemporaryDirectory() stringByStandardizingPath];
@@ -130,44 +120,77 @@
         
         NSFileManager* fileMgr = [[NSFileManager alloc] init];
         
+        media[@"thumbnail"] = thumbnailPath;
         if ([fileMgr fileExistsAtPath:thumbnailPath])
-        {
-            media[@"thumbnail"] = thumbnailPath;
             NSLog(@"file exist");
-        }
         else {
             NSLog(@"file doesn't exist");
             media[@"error"] = @"true";
             
             PHFetchResult *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[media[@"id"]]
                                                                      options:nil];
-            PHImageRequestOptions *options = [PHImageRequestOptions new];
-            options.synchronous = YES;
-            options.resizeMode = PHImageRequestOptionsResizeModeFast;
-            [[PHImageManager defaultManager] requestImageForAsset:assets[0]
-                                                       targetSize:CGSizeMake(300, 300)
-                                                      contentMode:PHImageContentModeAspectFill
-                                                          options:options
-                                                    resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
-                                                        if (result)
-                                                        {
-                                                            NSError* err = nil;
-                                                            if ([UIImagePNGRepresentation(result) writeToFile:thumbnailPath
-                                                                                                       options:NSAtomicWrite
-                                                                                                         error:&err])
-                                                                media[@"error"] = @"false";
-                                                            else {
-                                                                if (err)
-                                                                {
-                                                                    media[@"thumbnail"] = @"";
-                                                                    NSLog(@"Error saving image: %@", [err localizedDescription]);
+            if (assets && assets.count > 0) {
+                [[PHImageManager defaultManager] requestImageForAsset:assets[0]
+                                                           targetSize:CGSizeMake(300, 300)
+                                                          contentMode:PHImageContentModeAspectFill
+                                                              options:options
+                                                        resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+                                                            if (result)
+                                                            {
+                                                                NSError* err = nil;
+                                                                if ([UIImagePNGRepresentation(result) writeToFile:thumbnailPath
+                                                                                                          options:NSAtomicWrite
+                                                                                                            error:&err])
+                                                                    media[@"error"] = @"false";
+                                                                else {
+                                                                    if (err)
+                                                                    {
+                                                                        media[@"thumbnail"] = @"";
+                                                                        NSLog(@"Error saving image: %@", [err localizedDescription]);
+                                                                    }
                                                                 }
                                                             }
-                                                        }
-                                                    }];
+                                                        }];
+            } else {
+                if ([media[@"type"] isEqualToString:@"PHAssetCollectionSubtypeAlbumMyPhotoStream"]) {
+                    
+                    [[PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeAlbum
+                                                              subtype:PHAssetCollectionSubtypeAlbumMyPhotoStream
+                                                              options:nil] enumerateObjectsUsingBlock:^(PHAssetCollection *collection, NSUInteger idx, BOOL *stop)
+                     {
+                         if (collection != nil && collection.localizedTitle != nil && collection.localIdentifier != nil)
+                         {
+                             [[PHAsset fetchAssetsInAssetCollection:collection
+                                                            options:nil] enumerateObjectsUsingBlock:^(PHAsset * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                                 if ([obj.localIdentifier isEqualToString:media[@"id"]]) {
+                                     [[PHImageManager defaultManager] requestImageForAsset:obj
+                                                                                targetSize:CGSizeMake(300, 300)
+                                                                               contentMode:PHImageContentModeAspectFill
+                                                                                   options:options
+                                                                             resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+                                                                                 if (result)
+                                                                                 {
+                                                                                     NSError* err = nil;
+                                                                                     if ([UIImagePNGRepresentation(result) writeToFile:thumbnailPath
+                                                                                                                               options:NSAtomicWrite
+                                                                                                                                 error:&err])
+                                                                                         media[@"error"] = @"false";
+                                                                                     else {
+                                                                                         if (err)
+                                                                                         {
+                                                                                             media[@"thumbnail"] = @"";
+                                                                                             NSLog(@"Error saving image: %@", [err localizedDescription]);
+                                                                                         }
+                                                                                     }
+                                                                                 }
+                                                                             }];
+                                 }
+                             }];
+                         }
+                     }];
+                }
+            }
         }
-        
-        media[@"thumbnailLoaded"] = @(true);
         
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
                                                       messageAsDictionary:media];
@@ -176,97 +199,18 @@
     }];
 }
 
-+(UIImage*)resizedImage:(UIImage *) image  ToSize:(CGSize)dstSize
-{
-    CGImageRef imgRef = image.CGImage;
-    // the below values are regardless of orientation : for UIImages from Camera, width>height (landscape)
-    CGSize  srcSize = CGSizeMake(CGImageGetWidth(imgRef), CGImageGetHeight(imgRef)); // not equivalent to self.size (which is dependant on the imageOrientation)!
-    
-    /* Don't resize if we already meet the required destination size. */
-    if (CGSizeEqualToSize(srcSize, dstSize)) {
-        return image;
-    }
-    
-    CGFloat scaleRatio = dstSize.width / srcSize.width;
-    UIImageOrientation orient = image.imageOrientation;
-    CGAffineTransform transform = CGAffineTransformIdentity;
-    switch(orient) {
-            
-        case UIImageOrientationUp: //EXIF = 1
-            transform = CGAffineTransformIdentity;
-            break;
-            
-        case UIImageOrientationUpMirrored: //EXIF = 2
-            transform = CGAffineTransformMakeTranslation(srcSize.width, 0.0);
-            transform = CGAffineTransformScale(transform, -1.0, 1.0);
-            break;
-            
-        case UIImageOrientationDown: //EXIF = 3
-            transform = CGAffineTransformMakeTranslation(srcSize.width, srcSize.height);
-            transform = CGAffineTransformRotate(transform, M_PI);
-            break;
-            
-        case UIImageOrientationDownMirrored: //EXIF = 4
-            transform = CGAffineTransformMakeTranslation(0.0, srcSize.height);
-            transform = CGAffineTransformScale(transform, 1.0, -1.0);
-            break;
-            
-        case UIImageOrientationLeftMirrored: //EXIF = 5
-            dstSize = CGSizeMake(dstSize.height, dstSize.width);
-            transform = CGAffineTransformMakeTranslation(srcSize.height, srcSize.width);
-            transform = CGAffineTransformScale(transform, -1.0, 1.0);
-            transform = CGAffineTransformRotate(transform, 3.0 * M_PI_2);
-            break;
-            
-        case UIImageOrientationLeft: //EXIF = 6
-            dstSize = CGSizeMake(dstSize.height, dstSize.width);
-            transform = CGAffineTransformMakeTranslation(0.0, srcSize.width);
-            transform = CGAffineTransformRotate(transform, 3.0 * M_PI_2);
-            break;
-            
-        case UIImageOrientationRightMirrored: //EXIF = 7
-            dstSize = CGSizeMake(dstSize.height, dstSize.width);
-            transform = CGAffineTransformMakeScale(-1.0, 1.0);
-            transform = CGAffineTransformRotate(transform, M_PI_2);
-            break;
-            
-        case UIImageOrientationRight: //EXIF = 8
-            dstSize = CGSizeMake(dstSize.height, dstSize.width);
-            transform = CGAffineTransformMakeTranslation(srcSize.height, 0.0);
-            transform = CGAffineTransformRotate(transform, M_PI_2);
-            break;
-            
-        default:
-            [NSException raise:NSInternalInconsistencyException format:@"Invalid image orientation"];
-            
-    }
-    
-    /////////////////////////////////////////////////////////////////////////////
-    // The actual resize: draw the image on a new context, applying a transform matrix
-    UIGraphicsBeginImageContextWithOptions(dstSize, NO,image.scale);
-    
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    
-    if (!context) {
-        return nil;
-    }
-    
-    if (orient == UIImageOrientationRight || orient == UIImageOrientationLeft) {
-        CGContextScaleCTM(context, -scaleRatio, scaleRatio);
-        CGContextTranslateCTM(context, -srcSize.height, 0);
-    } else {
-        CGContextScaleCTM(context, scaleRatio, -scaleRatio);
-        CGContextTranslateCTM(context, 0, -srcSize.height);
-    }
-    
-    CGContextConcatCTM(context, transform);
-    
-    // we use srcSize (and not dstSize) as the size to specify is in user space (and we use the CTM to apply a scaleRatio)
-    CGContextDrawImage(UIGraphicsGetCurrentContext(), CGRectMake(0, 0, srcSize.width, srcSize.height), imgRef);
-    UIImage* resizedImage = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    
-    return resizedImage;
++ (NSDictionary *) subtypes {
+    NSDictionary *subtypes = @{@(PHAssetCollectionSubtypeAlbumRegular): @"PHAssetCollectionSubtypeAlbumRegular",
+                               @(PHAssetCollectionSubtypeAlbumImported): @"PHAssetCollectionSubtypeAlbumImported",
+                               @(PHAssetCollectionSubtypeAlbumMyPhotoStream): @"PHAssetCollectionSubtypeAlbumMyPhotoStream",
+                               @(PHAssetCollectionSubtypeAlbumCloudShared): @"PHAssetCollectionSubtypeAlbumCloudShared",
+                               @(PHAssetCollectionSubtypeSmartAlbumFavorites): @"PHAssetCollectionSubtypeSmartAlbumFavorites",
+                               @(PHAssetCollectionSubtypeSmartAlbumRecentlyAdded): @"PHAssetCollectionSubtypeSmartAlbumRecentlyAdded",
+                               @(PHAssetCollectionSubtypeSmartAlbumUserLibrary): @"PHAssetCollectionSubtypeSmartAlbumUserLibrary",
+                               @(PHAssetCollectionSubtypeSmartAlbumSelfPortraits): @"PHAssetCollectionSubtypeSmartAlbumSelfPortraits",
+                               @(PHAssetCollectionSubtypeSmartAlbumScreenshots): @"PHAssetCollectionSubtypeSmartAlbumScreenshots"
+                               };
+    return subtypes;
 }
 
 + (NSString*)cordovaVersion
