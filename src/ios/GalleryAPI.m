@@ -112,8 +112,6 @@
         
         NSMutableDictionary *media = [command argumentAtIndex:0];
         
-        NSLog(@"media id %@", media[@"id"]);
-        
         NSString *imageId = [media[@"id"] stringByReplacingOccurrencesOfString:@"/" withString:@"^"];
         NSString* docsPath = [NSTemporaryDirectory() stringByStandardizingPath];
         NSString* thumbnailPath = [NSString stringWithFormat:@"%@/%@_mthumb.png", docsPath, imageId];
@@ -201,15 +199,20 @@
 
 - (void) getHQImageData:(CDVInvokedUrlCommand*)command {
     [self.commandDelegate runInBackground:^{
+        
         PHImageRequestOptions *options = [PHImageRequestOptions new];
         options.synchronous = YES;
-        options.resizeMode = PHImageRequestOptionsResizeModeNone;
+        options.resizeMode = PHImageRequestOptionsResizeModeFast;
         options.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
-
         
         NSMutableDictionary *media = [command argumentAtIndex:0];
         
-        __block NSData *mediaBuffer;
+        NSString* docsPath = [NSTemporaryDirectory() stringByStandardizingPath];
+        NSString* hqImageURLPath = [NSString stringWithFormat:@"%@/hqImage.png", docsPath];
+        
+        media[@"HQImageUrl"] = hqImageURLPath;
+
+        media[@"error"] = @"true";
         
         PHFetchResult *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[media[@"id"]]
                                                                  options:nil];
@@ -217,10 +220,25 @@
             [[PHImageManager defaultManager] requestImageDataForAsset:assets[0]
                                                               options:options
                                                         resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
-                                                            mediaBuffer = imageData;
+                                                            if (imageData)
+                                                            {
+                                                                NSError* err = nil;
+                                                                if ([imageData writeToFile:hqImageURLPath
+                                                                                   options:NSAtomicWrite
+                                                                                     error:&err])
+                                                                    media[@"error"] = @"false";
+                                                                else {
+                                                                    if (err)
+                                                                    {
+                                                                        media[@"HQImageUrl"] = @"";
+                                                                        NSLog(@"Error saving image: %@", [err localizedDescription]);
+                                                                    }
+                                                                }
+                                                            }
                                                         }];
         } else {
             if ([media[@"type"] isEqualToString:@"PHAssetCollectionSubtypeAlbumMyPhotoStream"]) {
+                
                 [[PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeAlbum
                                                           subtype:PHAssetCollectionSubtypeAlbumMyPhotoStream
                                                           options:nil] enumerateObjectsUsingBlock:^(PHAssetCollection *collection, NSUInteger idx, BOOL *stop)
@@ -228,13 +246,26 @@
                      if (collection != nil && collection.localizedTitle != nil && collection.localIdentifier != nil)
                      {
                          [[PHAsset fetchAssetsInAssetCollection:collection
-                                                        options:nil]
-                          enumerateObjectsUsingBlock:^(PHAsset * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                                                        options:nil] enumerateObjectsUsingBlock:^(PHAsset * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
                              if ([obj.localIdentifier isEqualToString:media[@"id"]]) {
-                                 [[PHImageManager defaultManager] requestImageDataForAsset:obj
+                                 [[PHImageManager defaultManager] requestImageDataForAsset:assets[0]
                                                                                    options:options
                                                                              resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
-                                                                                 mediaBuffer = imageData;
+                                                                                 if (imageData)
+                                                                                 {
+                                                                                     NSError* err = nil;
+                                                                                     if ([imageData writeToFile:hqImageURLPath
+                                                                                                        options:NSAtomicWrite
+                                                                                                          error:&err])
+                                                                                         media[@"error"] = @"false";
+                                                                                     else {
+                                                                                         if (err)
+                                                                                         {
+                                                                                             media[@"HQImageUrl"] = @"";
+                                                                                             NSLog(@"Error saving image: %@", [err localizedDescription]);
+                                                                                         }
+                                                                                     }
+                                                                                 }
                                                                              }];
                              }
                          }];
@@ -243,10 +274,8 @@
             }
         }
         
-        NSLog(@"Media %@", media);
-        
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                      messageAsArrayBuffer:mediaBuffer];
+                                                      messageAsDictionary:media];
         
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
