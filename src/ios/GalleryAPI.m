@@ -204,10 +204,12 @@
         PHImageRequestOptions *options = [PHImageRequestOptions new];
         options.synchronous = YES;
         options.resizeMode = PHImageRequestOptionsResizeModeNone;
+        options.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+
         
         NSMutableDictionary *media = [command argumentAtIndex:0];
         
-        media[@"error"] = @"true";
+        __block NSData *mediaBuffer;
         
         PHFetchResult *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[media[@"id"]]
                                                                  options:nil];
@@ -215,8 +217,7 @@
             [[PHImageManager defaultManager] requestImageDataForAsset:assets[0]
                                                               options:options
                                                         resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
-                                                            media[@"HQImageData"] = imageData;
-                                                            media[@"error"] = @"false";
+                                                            mediaBuffer = imageData;
                                                         }];
         } else {
             if ([media[@"type"] isEqualToString:@"PHAssetCollectionSubtypeAlbumMyPhotoStream"]) {
@@ -233,8 +234,7 @@
                                  [[PHImageManager defaultManager] requestImageDataForAsset:obj
                                                                                    options:options
                                                                              resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
-                                                                                 media[@"HQImageData"] = imageData;
-                                                                                 media[@"error"] = @"false";
+                                                                                 mediaBuffer = imageData;
                                                                              }];
                              }
                          }];
@@ -243,8 +243,10 @@
             }
         }
         
+        NSLog(@"Media %@", media);
+        
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                      messageAsDictionary:media];
+                                                      messageAsArrayBuffer:mediaBuffer];
         
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
