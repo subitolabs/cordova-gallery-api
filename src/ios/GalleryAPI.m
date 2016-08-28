@@ -207,19 +207,29 @@
         
         NSMutableDictionary *media = [command argumentAtIndex:0];
         
+        //        NSString *imageId = [media[@"id"] stringByReplacingOccurrencesOfString:@"/" withString:@"^"];
+        //        NSString* docsPath = [NSTemporaryDirectory() stringByStandardizingPath];
+        //        NSString* thumbnailPath = [NSString stringWithFormat:@"%@/%@_mthumb.png", docsPath, imageId];
+        
         __block NSData *mediaData;
         
         PHFetchResult *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[media[@"id"]]
                                                                  options:nil];
         if (assets && assets.count > 0) {
-            [[PHImageManager defaultManager] requestImageForAsset:assets[0]
-                                                       targetSize:PHImageManagerMaximumSize
-                                                      contentMode:PHImageContentModeAspectFit
-                                                          options:options
-                                                    resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
-                                                        if (result)
-                                                            mediaData = UIImagePNGRepresentation(result);
-                                                    }];
+            [[PHImageManager defaultManager] requestImageDataForAsset:assets[0]
+                                                              options:options
+                                                        resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
+                                                            if (imageData)
+                                                            {
+                                                                if (orientation == UIImageOrientationUp) {
+                                                                    mediaData = imageData;
+                                                                } else {
+                                                                    UIImage *image = [UIImage imageWithData:imageData];
+                                                                    image = [self fixrotation:image];
+                                                                    mediaData = UIImageJPEGRepresentation(image, 1);
+                                                                }
+                                                            }
+                                                        }];
         } else {
             if ([media[@"type"] isEqualToString:@"PHAssetCollectionSubtypeAlbumMyPhotoStream"]) {
                 
@@ -232,14 +242,20 @@
                          [[PHAsset fetchAssetsInAssetCollection:collection
                                                         options:nil] enumerateObjectsUsingBlock:^(PHAsset * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
                              if ([obj.localIdentifier isEqualToString:media[@"id"]]) {
-                                 [[PHImageManager defaultManager] requestImageForAsset:assets[0]
-                                                                            targetSize:PHImageManagerMaximumSize
-                                                                           contentMode:PHImageContentModeAspectFit
-                                                                               options:options
-                                                                         resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
-                                                                             if (result)
-                                                                                 mediaData = UIImagePNGRepresentation(result);
-                                                                         }];
+                                 [[PHImageManager defaultManager] requestImageDataForAsset:obj
+                                                                                   options:options
+                                                                             resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
+                                                                                 if (imageData)
+                                                                                 {
+                                                                                     if (orientation == UIImageOrientationUp) {
+                                                                                         mediaData = imageData;
+                                                                                     } else {
+                                                                                         UIImage *image = [UIImage imageWithData:imageData];
+                                                                                         image = [self fixrotation:image];
+                                                                                         mediaData = UIImageJPEGRepresentation(image,  1);
+                                                                                     }
+                                                                                 }
+                                                                             }];
                              }
                          }];
                      }
@@ -248,7 +264,7 @@
         }
         
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                      messageAsArrayBuffer:mediaData];
+                                                     messageAsArrayBuffer:mediaData];
         
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
@@ -267,6 +283,83 @@
                                @(PHAssetCollectionSubtypeSmartAlbumScreenshots): @"PHAssetCollectionSubtypeSmartAlbumScreenshots"
                                };
     return subtypes;
+}
+
+- (UIImage *)fixrotation:(UIImage *)image{
+    
+    
+    if (image.imageOrientation == UIImageOrientationUp) return image;
+    CGAffineTransform transform = CGAffineTransformIdentity;
+    
+    switch (image.imageOrientation) {
+        case UIImageOrientationDown:
+        case UIImageOrientationDownMirrored:
+            transform = CGAffineTransformTranslate(transform, image.size.width, image.size.height);
+            transform = CGAffineTransformRotate(transform, M_PI);
+            break;
+            
+        case UIImageOrientationLeft:
+        case UIImageOrientationLeftMirrored:
+            transform = CGAffineTransformTranslate(transform, image.size.width, 0);
+            transform = CGAffineTransformRotate(transform, M_PI_2);
+            break;
+            
+        case UIImageOrientationRight:
+        case UIImageOrientationRightMirrored:
+            transform = CGAffineTransformTranslate(transform, 0, image.size.height);
+            transform = CGAffineTransformRotate(transform, -M_PI_2);
+            break;
+        case UIImageOrientationUp:
+        case UIImageOrientationUpMirrored:
+            break;
+    }
+    
+    switch (image.imageOrientation) {
+        case UIImageOrientationUpMirrored:
+        case UIImageOrientationDownMirrored:
+            transform = CGAffineTransformTranslate(transform, image.size.width, 0);
+            transform = CGAffineTransformScale(transform, -1, 1);
+            break;
+            
+        case UIImageOrientationLeftMirrored:
+        case UIImageOrientationRightMirrored:
+            transform = CGAffineTransformTranslate(transform, image.size.height, 0);
+            transform = CGAffineTransformScale(transform, -1, 1);
+            break;
+        case UIImageOrientationUp:
+        case UIImageOrientationDown:
+        case UIImageOrientationLeft:
+        case UIImageOrientationRight:
+            break;
+    }
+    
+    // Now we draw the underlying CGImage into a new context, applying the transform
+    // calculated above.
+    CGContextRef ctx = CGBitmapContextCreate(NULL, image.size.width, image.size.height,
+                                             CGImageGetBitsPerComponent(image.CGImage), 0,
+                                             CGImageGetColorSpace(image.CGImage),
+                                             CGImageGetBitmapInfo(image.CGImage));
+    CGContextConcatCTM(ctx, transform);
+    switch (image.imageOrientation) {
+        case UIImageOrientationLeft:
+        case UIImageOrientationLeftMirrored:
+        case UIImageOrientationRight:
+        case UIImageOrientationRightMirrored:
+            // Grr...
+            CGContextDrawImage(ctx, CGRectMake(0,0,image.size.height,image.size.width), image.CGImage);
+            break;
+            
+        default:
+            CGContextDrawImage(ctx, CGRectMake(0,0,image.size.width,image.size.height), image.CGImage);
+            break;
+    }
+    
+    // And now we just create a new UIImage from the drawing context
+    CGImageRef cgimg = CGBitmapContextCreateImage(ctx);
+    UIImage *img = [UIImage imageWithCGImage:cgimg];
+    CGContextRelease(ctx);
+    CGImageRelease(cgimg);
+    return img;
 }
 
 + (NSString*)cordovaVersion
