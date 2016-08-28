@@ -9,4 +9,6 @@
 
 - (void) getMediaThumbnail:(CDVInvokedUrlCommand*)command;
 
+- (void) getHQImageData:(CDVInvokedUrlCommand*)command;
+
 @end

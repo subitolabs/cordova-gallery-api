@@ -199,6 +199,58 @@
     }];
 }
 
+- (void) getHQImageData:(CDVInvokedUrlCommand*)command {
+    [self.commandDelegate runInBackground:^{
+        PHImageRequestOptions *options = [PHImageRequestOptions new];
+        options.synchronous = YES;
+        options.resizeMode = PHImageRequestOptionsResizeModeNone;
+        
+        NSMutableDictionary *media = [command argumentAtIndex:0];
+        
+        media[@"error"] = @"true";
+        
+        PHFetchResult *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[media[@"id"]]
+                                                                 options:nil];
+        if (assets && assets.count > 0) {
+            [[PHImageManager defaultManager] requestImageDataForAsset:assets[0]
+                                                              options:options
+                                                        resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
+                                                            media[@"HQImageData"] = imageData;
+                                                            media[@"error"] = @"false";
+                                                        }];
+        } else {
+            if ([media[@"type"] isEqualToString:@"PHAssetCollectionSubtypeAlbumMyPhotoStream"]) {
+                [[PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeAlbum
+                                                          subtype:PHAssetCollectionSubtypeAlbumMyPhotoStream
+                                                          options:nil] enumerateObjectsUsingBlock:^(PHAssetCollection *collection, NSUInteger idx, BOOL *stop)
+                 {
+                     if (collection != nil && collection.localizedTitle != nil && collection.localIdentifier != nil)
+                     {
+                         [[PHAsset fetchAssetsInAssetCollection:collection
+                                                        options:nil]
+                          enumerateObjectsUsingBlock:^(PHAsset * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                             if ([obj.localIdentifier isEqualToString:media[@"id"]]) {
+                                 [[PHImageManager defaultManager] requestImageDataForAsset:obj
+                                                                                   options:options
+                                                                             resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
+                                                                                 media[@"HQImageData"] = imageData;
+                                                                                 media[@"error"] = @"false";
+                                                                             }];
+                             }
+                         }];
+                     }
+                 }];
+            }
+        }
+        
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                      messageAsDictionary:media];
+        
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
+}
+
+
 + (NSDictionary *) subtypes {
     NSDictionary *subtypes = @{@(PHAssetCollectionSubtypeAlbumRegular): @"PHAssetCollectionSubtypeAlbumRegular",
                                @(PHAssetCollectionSubtypeAlbumImported): @"PHAssetCollectionSubtypeAlbumImported",

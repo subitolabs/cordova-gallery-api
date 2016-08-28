@@ -34,4 +34,14 @@ GalleryAPI.prototype.getMediaThumbnail = function(media, successCallback, errorC
     );
 };
 
+GalleryAPI.prototype.getHQImageData = function(media, successCallback, errorCallback) {
+    cordova.exec(
+        successCallback,
+        errorCallback,
+        'GalleryAPI',
+        'getHQImageData',
+        [media]
+    );
+};
+
 module.exports = new GalleryAPI();
