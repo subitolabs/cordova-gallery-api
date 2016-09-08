@@ -208,11 +208,11 @@
         NSMutableDictionary *media = [command argumentAtIndex:0];
         
         NSString* docsPath = [NSTemporaryDirectory() stringByStandardizingPath];
-        //        NSString *imageId = [media[@"id"] stringByReplacingOccurrencesOfString:@"/" withString:@"^"];
-        //        NSString* imagePath = [NSString stringWithFormat:@"%@/%@.png", docsPath, imageId];
-        NSString* imagePath = [NSString stringWithFormat:@"%@/temp.png", docsPath];
+        NSString *imageId = [media[@"id"] stringByReplacingOccurrencesOfString:@"/" withString:@"^"];
+        NSString* imagePath = [NSString stringWithFormat:@"%@/%@.png", docsPath, imageId];
+//                NSString* imagePath = [NSString stringWithFormat:@"%@/temp.png", docsPath];
         
-        //        __block NSData *mediaData;
+        __block NSData *mediaData;
         NSString *mediaURL = imagePath;
         
         PHFetchResult *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[media[@"id"]]
@@ -223,9 +223,18 @@
                                                         resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
                                                             if (imageData)
                                                             {
+                                                                //                                                                Processing Image Data if needed
+                                                                if (orientation == UIImageOrientationUp) {
+                                                                    mediaData = imageData;
+                                                                } else {
+                                                                    UIImage *image = [UIImage imageWithData:imageData];
+                                                                    image = [self fixrotation:image];
+                                                                    mediaData = UIImageJPEGRepresentation(image, 1);
+                                                                }
+                                                                
                                                                 //writing image to a file
                                                                 NSError* err = nil;
-                                                                if ([imageData writeToFile:imagePath
+                                                                if ([mediaData writeToFile:imagePath
                                                                                    options:NSAtomicWrite
                                                                                      error:&err])
                                                                 {
@@ -238,15 +247,6 @@
                                                                         NSLog(@"Error saving image: %@", [err localizedDescription]);
                                                                     }
                                                                 }
-                                                                
-                                                                //Processing Image Data if needed
-                                                                //                                                                if (orientation == UIImageOrientationUp) {
-                                                                //                                                                    mediaData = imageData;
-                                                                //                                                                } else {
-                                                                //                                                                    UIImage *image = [UIImage imageWithData:imageData];
-                                                                //                                                                    image = [self fixrotation:image];
-                                                                //                                                                    mediaData = UIImageJPEGRepresentation(image, 1);
-                                                                //                                                                }
                                                             }
                                                         }];
         } else {
@@ -266,9 +266,18 @@
                                                                              resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
                                                                                  if (imageData)
                                                                                  {
+                                                                                     //                                                                Processing Image Data if needed
+                                                                                     if (orientation == UIImageOrientationUp) {
+                                                                                         mediaData = imageData;
+                                                                                     } else {
+                                                                                         UIImage *image = [UIImage imageWithData:imageData];
+                                                                                         image = [self fixrotation:image];
+                                                                                         mediaData = UIImageJPEGRepresentation(image, 1);
+                                                                                     }
+                                                                                     
                                                                                      //writing image to a file
                                                                                      NSError* err = nil;
-                                                                                     if ([imageData writeToFile:imagePath
+                                                                                     if ([mediaData writeToFile:imagePath
                                                                                                         options:NSAtomicWrite
                                                                                                           error:&err])
                                                                                      {
@@ -281,15 +290,6 @@
                                                                                              NSLog(@"Error saving image: %@", [err localizedDescription]);
                                                                                          }
                                                                                      }
-                                                                                     
-                                                                                     //Processing Image Data if needed
-                                                                                     //                                                                if (orientation == UIImageOrientationUp) {
-                                                                                     //                                                                    mediaData = imageData;
-                                                                                     //                                                                } else {
-                                                                                     //                                                                    UIImage *image = [UIImage imageWithData:imageData];
-                                                                                     //                                                                    image = [self fixrotation:image];
-                                                                                     //                                                                    mediaData = UIImageJPEGRepresentation(image, 1);
-                                                                                     //                                                                }
                                                                                  }
                                                                              }];
                              }
