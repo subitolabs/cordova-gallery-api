@@ -29,6 +29,7 @@ import java.util.Iterator;
 public class GalleryAPI extends CordovaPlugin {
     public static final String ACTION_GET_MEDIA = "getMedia";
     public static final String ACTION_GET_MEDIA_THUMBNAIL = "getMediaThumbnail";
+    public static final String ACTION_GET_HQ_IMAGE_DATA = "getHQImageData";
     public static final String ACTION_GET_ALBUMS = "getAlbums";
     public static final String DIR_NAME = ".mendr";
 
@@ -60,6 +61,19 @@ public class GalleryAPI extends CordovaPlugin {
                         try {
                             JSONObject media = getMediaThumbnail((JSONObject) args.get(0));
                             callbackContext.success(media);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            callbackContext.error(e.getMessage());
+                        }
+                    }
+                });
+                return true;
+            } else if (ACTION_GET_HQ_IMAGE_DATA.equals(action)) {
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        try {
+                            File imagePath = getHQImageData((JSONObject) args.get(0));
+                            callbackContext.success(imagePath.toString());
                         } catch (Exception e) {
                             e.printStackTrace();
                             callbackContext.error(e.getMessage());
@@ -246,6 +260,51 @@ public class GalleryAPI extends CordovaPlugin {
         return media;
     }
 
+    private File getHQImageData(JSONObject media) throws JSONException {
+        File imagePath = imagePathFromMediaId(media.getString("id"));
+
+        if (ops == null)
+        {
+            ops = new BitmapFactory.Options();
+            ops.inJustDecodeBounds = false;
+            ops.inSampleSize = 1;
+        }
+
+        File image = new File(media.getString("data"));
+
+        int sourceWidth = media.getInt("width");
+        int sourceHeight = media.getInt("height");
+
+        if (sourceHeight > 0 && sourceWidth > 0) {
+            Bitmap originalImageBitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), ops); //creating bitmap of original image
+
+            if (originalImageBitmap != null) {
+                int orientation = media.getInt("orientation");
+                if (orientation > 0)
+                    originalImageBitmap = rotate(originalImageBitmap, orientation);
+
+                byte[] imageData = getBytesFromBitmap(originalImageBitmap);
+                originalImageBitmap.recycle();
+                if (imageData != null)
+                {
+                    FileOutputStream outStream;
+                    try {
+                        outStream = new FileOutputStream(imagePath);
+                        outStream.write(imageData);
+                        outStream.close();
+                    } catch (IOException e) {
+                        Log.e("Mendr", "Couldn't write the image data");
+                        e.printStackTrace();
+                    }
+                }
+            } else
+                Log.e("Mendr", "Couldn't decode the original image");
+        } else
+            Log.e("Mendr", "Invalid Media!!! Image width or height is 0");
+
+        return imagePath;
+    }
+
     private byte[] getBytesFromBitmap(Bitmap bitmap) {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
@@ -273,6 +332,23 @@ public class GalleryAPI extends CordovaPlugin {
         thumbnailPath = new File(dir.getPath() + File.separator + thumbnailName);
 
         return thumbnailPath;
+    }
+
+    private File imagePathFromMediaId(String mediaId) {
+        File imagePath = null;
+
+        String imageName = mediaId + ".png";
+        File dir = new File(this.getContext().getApplicationInfo().dataDir, DIR_NAME);
+        if (!dir.exists()) {
+            if (!dir.mkdirs()) {
+                Log.e("Mendr", "Failed to create storage directory.");
+                return imagePath;
+            }
+        }
+
+        imagePath = new File(dir.getPath() + File.separator + imageName);
+
+        return imagePath;
     }
 
     private Context getContext() {
