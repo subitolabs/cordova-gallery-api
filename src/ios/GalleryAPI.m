@@ -207,11 +207,13 @@
         
         NSMutableDictionary *media = [command argumentAtIndex:0];
         
+        NSString* docsPath = [NSTemporaryDirectory() stringByStandardizingPath];
         //        NSString *imageId = [media[@"id"] stringByReplacingOccurrencesOfString:@"/" withString:@"^"];
-        //        NSString* docsPath = [NSTemporaryDirectory() stringByStandardizingPath];
-        //        NSString* thumbnailPath = [NSString stringWithFormat:@"%@/%@_mthumb.png", docsPath, imageId];
+        //        NSString* imagePath = [NSString stringWithFormat:@"%@/%@.png", docsPath, imageId];
+        NSString* imagePath = [NSString stringWithFormat:@"%@/temp.png", docsPath];
         
-        __block NSData *mediaData;
+        //        __block NSData *mediaData;
+        NSString *mediaURL = imagePath;
         
         PHFetchResult *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[media[@"id"]]
                                                                  options:nil];
@@ -221,13 +223,30 @@
                                                         resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
                                                             if (imageData)
                                                             {
-                                                                if (orientation == UIImageOrientationUp) {
-                                                                    mediaData = imageData;
-                                                                } else {
-                                                                    UIImage *image = [UIImage imageWithData:imageData];
-                                                                    image = [self fixrotation:image];
-                                                                    mediaData = UIImageJPEGRepresentation(image, 1);
+                                                                //writing image to a file
+                                                                NSError* err = nil;
+                                                                if ([imageData writeToFile:imagePath
+                                                                                   options:NSAtomicWrite
+                                                                                     error:&err])
+                                                                {
+                                                                    //                                                                    media[@"error"] = @"false";
                                                                 }
+                                                                else {
+                                                                    if (err)
+                                                                    {
+                                                                        //                                                                        media[@"thumbnail"] = @"";
+                                                                        NSLog(@"Error saving image: %@", [err localizedDescription]);
+                                                                    }
+                                                                }
+                                                                
+                                                                //Processing Image Data if needed
+                                                                //                                                                if (orientation == UIImageOrientationUp) {
+                                                                //                                                                    mediaData = imageData;
+                                                                //                                                                } else {
+                                                                //                                                                    UIImage *image = [UIImage imageWithData:imageData];
+                                                                //                                                                    image = [self fixrotation:image];
+                                                                //                                                                    mediaData = UIImageJPEGRepresentation(image, 1);
+                                                                //                                                                }
                                                             }
                                                         }];
         } else {
@@ -247,13 +266,30 @@
                                                                              resultHandler:^(NSData * _Nullable imageData, NSString * _Nullable dataUTI, UIImageOrientation orientation, NSDictionary * _Nullable info) {
                                                                                  if (imageData)
                                                                                  {
-                                                                                     if (orientation == UIImageOrientationUp) {
-                                                                                         mediaData = imageData;
-                                                                                     } else {
-                                                                                         UIImage *image = [UIImage imageWithData:imageData];
-                                                                                         image = [self fixrotation:image];
-                                                                                         mediaData = UIImageJPEGRepresentation(image,  1);
+                                                                                     //writing image to a file
+                                                                                     NSError* err = nil;
+                                                                                     if ([imageData writeToFile:imagePath
+                                                                                                        options:NSAtomicWrite
+                                                                                                          error:&err])
+                                                                                     {
+                                                                                         //                                                                    media[@"error"] = @"false";
                                                                                      }
+                                                                                     else {
+                                                                                         if (err)
+                                                                                         {
+                                                                                             //                                                                        media[@"thumbnail"] = @"";
+                                                                                             NSLog(@"Error saving image: %@", [err localizedDescription]);
+                                                                                         }
+                                                                                     }
+                                                                                     
+                                                                                     //Processing Image Data if needed
+                                                                                     //                                                                if (orientation == UIImageOrientationUp) {
+                                                                                     //                                                                    mediaData = imageData;
+                                                                                     //                                                                } else {
+                                                                                     //                                                                    UIImage *image = [UIImage imageWithData:imageData];
+                                                                                     //                                                                    image = [self fixrotation:image];
+                                                                                     //                                                                    mediaData = UIImageJPEGRepresentation(image, 1);
+                                                                                     //                                                                }
                                                                                  }
                                                                              }];
                              }
@@ -264,7 +300,7 @@
         }
         
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                     messageAsArrayBuffer:mediaData];
+                                                          messageAsString:mediaURL];
         
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
