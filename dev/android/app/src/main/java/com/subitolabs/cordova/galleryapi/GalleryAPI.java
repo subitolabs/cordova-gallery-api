@@ -32,6 +32,7 @@ public class GalleryAPI extends CordovaPlugin {
     public static final String ACTION_GET_HQ_IMAGE_DATA = "getHQImageData";
     public static final String ACTION_GET_ALBUMS = "getAlbums";
     public static final String DIR_NAME = ".mendr";
+    public static final String SUB_DIR_NAME = ".mendr_hq";
 
     private static final int BASE_SIZE = 300;
 
@@ -337,18 +338,53 @@ public class GalleryAPI extends CordovaPlugin {
     private File imagePathFromMediaId(String mediaId) {
         File imagePath = null;
 
-        String imageName = mediaId + ".png";
-        File dir = new File(this.getContext().getApplicationInfo().dataDir, DIR_NAME);
-        if (!dir.exists()) {
+        File rootDir = new File(this.getContext().getApplicationInfo().dataDir, DIR_NAME);
+        File dir = new File(rootDir, SUB_DIR_NAME);
+
+        //check if root directory exist
+        if (rootDir.exists()) {
+            //root directory exists
+            if (dir.exists())
+            {
+                //dir exists so deleting it
+                deleteRecursive(dir);
+            }
+
             if (!dir.mkdirs()) {
-                Log.e("Mendr", "Failed to create storage directory.");
+                Log.e("Mendr", "Failed to create hq storage directory.");
                 return imagePath;
+            } else {
+                //dir created successfully
+            }
+        } else {
+            //root directory doesn't exist
+            //trying to create root directory
+            if (!rootDir.mkdirs()) {
+                Log.e("Mendr", "Failed to create root storage directory.");
+                return imagePath;
+            } else {
+                //root dir created successfully
+                if (!dir.mkdirs()) {
+                    Log.e("Mendr", "Failed to create hq storage directory.");
+                    return imagePath;
+                } else {
+                    //dir created successfully
+                }
             }
         }
 
+        String imageName = mediaId + ".png";
         imagePath = new File(dir.getPath() + File.separator + imageName);
 
         return imagePath;
+    }
+
+    void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory.isDirectory())
+            for (File child : fileOrDirectory.listFiles())
+                deleteRecursive(child);
+
+        fileOrDirectory.delete();
     }
 
     private Context getContext() {
