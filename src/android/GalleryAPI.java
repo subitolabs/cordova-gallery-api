@@ -264,12 +264,9 @@ public class GalleryAPI extends CordovaPlugin {
     private File getHQImageData(JSONObject media) throws JSONException {
         File imagePath = imagePathFromMediaId(media.getString("id"));
 
-        if (ops == null)
-        {
-            ops = new BitmapFactory.Options();
-            ops.inJustDecodeBounds = false;
-            ops.inSampleSize = 1;
-        }
+        BitmapFactory.Options ops = new BitmapFactory.Options();
+        ops.inJustDecodeBounds = false;
+        ops.inSampleSize = 1;
 
         File image = new File(media.getString("data"));
 
