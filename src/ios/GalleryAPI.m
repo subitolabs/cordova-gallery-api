@@ -26,7 +26,7 @@
         ];
 
         for (NSDictionary* collectionType in collectionTypes) {
-            [[PHAssetCollection fetchAssetCollectionsWithType:[[collectionType objectForKey:@"type"] integerValue] subtype:PHAssetCollectionSubtypeAny options:nil] enumerateObjectsUsingBlock:^(PHAssetCollection* collection, NSUInteger idx, BOOL* stop) {
+            [[PHAssetCollection fetchAssetCollectionsWithType:[collectionType[@"type"] integerValue] subtype:PHAssetCollectionSubtypeAny options:nil] enumerateObjectsUsingBlock:^(PHAssetCollection* collection, NSUInteger idx, BOOL* stop) {
                 if (collection != nil && collection.localizedTitle != nil && collection.localIdentifier != nil && ([subtypes.allKeys indexOfObject:@(collection.assetCollectionSubtype)] != NSNotFound)) {
                     PHFetchResult* result = [PHAsset fetchAssetsInAssetCollection:collection
                                                                           options:nil];
@@ -78,20 +78,21 @@
             PHAssetCollection* collection = collections[0];
             [[PHAsset fetchAssetsInAssetCollection:collection
                                            options:nil] enumerateObjectsUsingBlock:^(PHAsset* obj, NSUInteger idx, BOOL* stop) {
-                [assets addObject:@{
-                    @"id" : obj.localIdentifier,
-                    @"title" : @"",
-                    @"orientation" : @"up",
-                    @"lat" : @4,
-                    @"lng" : @5,
-                    @"width" : [NSNumber numberWithFloat:obj.pixelWidth],
-                    @"height" : [NSNumber numberWithFloat:obj.pixelHeight],
-                    @"size" : @0,
-                    @"data" : @"",
-                    @"thumbnail" : @"",
-                    @"error" : @"false",
-                    @"type" : subtypes[@(collection.assetCollectionSubtype)]
-                }];
+                if (obj.mediaType == PHAssetMediaTypeImage)
+                    [assets addObject:@{
+                                        @"id" : obj.localIdentifier,
+                                        @"title" : @"",
+                                        @"orientation" : @"up",
+                                        @"lat" : @4,
+                                        @"lng" : @5,
+                                        @"width" : [NSNumber numberWithFloat:obj.pixelWidth],
+                                        @"height" : [NSNumber numberWithFloat:obj.pixelHeight],
+                                        @"size" : @0,
+                                        @"data" : @"",
+                                        @"thumbnail" : @"",
+                                        @"error" : @"false",
+                                        @"type" : subtypes[@(collection.assetCollectionSubtype)]
+                                        }];
             }];
         }
 
