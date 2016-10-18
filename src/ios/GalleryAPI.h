@@ -3,6 +3,8 @@
 
 @interface GalleryAPI : CDVPlugin
 
+- (void) checkPermission:(CDVInvokedUrlCommand*)command;
+
 - (void) getAlbums:(CDVInvokedUrlCommand*)command;
 
 - (void) getMedia:(CDVInvokedUrlCommand*)command;

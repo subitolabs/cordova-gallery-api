@@ -4,6 +4,17 @@ function GalleryAPI()
     
 }
 
+GalleryAPI.prototype.checkPermission = function(successCallback, errorCallback) {
+    cordova.exec(
+        successCallback,
+        errorCallback,
+        'GalleryAPI',
+        'checkPermission',
+        []
+    );
+};
+
+
 GalleryAPI.prototype.getAlbums = function(successCallback, errorCallback) {
     cordova.exec(
         successCallback,
