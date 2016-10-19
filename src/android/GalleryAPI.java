@@ -1,16 +1,21 @@
 package com.subitolabs.cordova.galleryapi;
 
 
+import android.Manifest;
 import android.content.Context;
-import android.content.ContextWrapper;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.net.Uri;
-import android.os.Environment;
+import android.os.Build;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.apache.cordova.*;
 import org.json.JSONArray;
@@ -21,12 +26,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 public class GalleryAPI extends CordovaPlugin {
+    public static final String ACTION_CHECK_PERMISSION = "checkPermission";
     public static final String ACTION_GET_MEDIA = "getMedia";
     public static final String ACTION_GET_MEDIA_THUMBNAIL = "getMediaThumbnail";
     public static final String ACTION_GET_HQ_IMAGE_DATA = "getHQImageData";
@@ -37,6 +43,10 @@ public class GalleryAPI extends CordovaPlugin {
     private static final int BASE_SIZE = 300;
 
     private static BitmapFactory.Options ops = null;
+
+    private static final int STORAGE_PERMISSIONS_REQUEST = 1;
+
+    private CallbackContext cbc = null;
 
     @Override
     public boolean execute(String action, final JSONArray args, final CallbackContext callbackContext) throws JSONException {
@@ -55,6 +65,14 @@ public class GalleryAPI extends CordovaPlugin {
                     }
                 });
 
+                return true;
+            } else if (ACTION_CHECK_PERMISSION.equals(action)) {
+                cordova.getThreadPool().execute(new Runnable() {
+                    public void run() {
+                        cbc = callbackContext;
+                        checkPermission();
+                    }
+                });
                 return true;
             } else if (ACTION_GET_MEDIA_THUMBNAIL.equals(action)) {
                 cordova.getThreadPool().execute(new Runnable() {
@@ -115,7 +133,7 @@ public class GalleryAPI extends CordovaPlugin {
         final ArrayOfObjects results = queryContentProvider(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, "1) GROUP BY 1,(2");
 
         Object collection = null;
-        for (int i = 0; i < results.size(); i++ ) {
+        for (int i = 0; i < results.size(); i++) {
             collection = results.get(i);
             if (collection.getString("title").equals("Camera")) {
                 results.remove(i);
@@ -154,7 +172,7 @@ public class GalleryAPI extends CordovaPlugin {
             media.put("thumbnail", "");
             media.put("error", "false");
 
-            if (media.getInt("height") <=0 || media.getInt("width") <= 0) {
+            if (media.getInt("height") <= 0 || media.getInt("width") <= 0) {
                 System.err.println(media);
             } else {
                 temp.add(media);
@@ -165,17 +183,80 @@ public class GalleryAPI extends CordovaPlugin {
         return temp;
     }
 
+    private void checkPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            List<String> permissions = new ArrayList<String>();
+
+            boolean isReadDenied = false;
+            boolean isWriteDenied = false;
+
+            if (ContextCompat.checkSelfPermission(this.getContext(), Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this.cordova.getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE))
+                    isReadDenied = true;
+                else
+                    permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+            }
+
+            if (ContextCompat.checkSelfPermission(this.getContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this.cordova.getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                    isWriteDenied = true;
+                else
+                    permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            }
+
+            if (isReadDenied || isWriteDenied) {
+                String message;
+
+                if (isReadDenied && isWriteDenied)
+                    message = "Read and Write permissions are denied";
+                else if (isReadDenied)
+                    message = "Read permission is denied";
+                else
+                    message = "Write permission is denied";
+
+                sendCheckPermissionResult(false, message);
+            } else if (permissions.size() > 0) {
+                String[] pArray = new String[permissions.size()];
+                pArray = permissions.toArray(pArray);
+                ActivityCompat.requestPermissions(this.cordova.getActivity(), pArray, STORAGE_PERMISSIONS_REQUEST);
+            } else
+                sendCheckPermissionResult(true, "Authorized");
+        } else
+            sendCheckPermissionResult(true, "Authorized");
+    }
+
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case STORAGE_PERMISSIONS_REQUEST: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    sendCheckPermissionResult(true, "Authorized");
+                else
+                    sendCheckPermissionResult(false, "Denied");
+                return;
+            }
+        }
+    }
+
+    private void sendCheckPermissionResult(Boolean success, String message) {
+        try {
+            JSONObject result = new JSONObject();
+            result.put("success", success);
+            result.put("message", message);
+            cbc.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            cbc.error(e.getMessage());
+        }
+    }
+
     private JSONObject getMediaThumbnail(JSONObject media) throws JSONException {
 
         File thumbnailPath = thumbnailPathFromMediaId(media.getString("id"));
-        if (thumbnailPath.exists())
-        {
+        if (thumbnailPath.exists()) {
             System.out.println("Thumbnail Already Exists!!!. Not Creating New One");
             media.put("thumbnail", thumbnailPath);
-        }
-        else {
-            if (ops == null)
-            {
+        } else {
+            if (ops == null) {
                 ops = new BitmapFactory.Options();
                 ops.inJustDecodeBounds = false;
                 ops.inSampleSize = 1;
@@ -200,23 +281,20 @@ public class GalleryAPI extends CordovaPlugin {
 
                 if (sourceWidth * sourceHeight > 600000 && sourceWidth * sourceHeight < 1000000) {
                     ops.inSampleSize = 4;
-                }
-                else if (sourceWidth * sourceHeight > 1000000) {
+                } else if (sourceWidth * sourceHeight > 1000000) {
                     ops.inSampleSize = 8;
                 }
 
                 Bitmap originalImageBitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), ops); //creating bitmap of original image
 
-                if (originalImageBitmap == null)
-                {
+                if (originalImageBitmap == null) {
                     ops.inSampleSize = 1;
                     originalImageBitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), ops);
                 }
 
                 if (originalImageBitmap != null) {
 
-                    if (destinationHeight <=0 || destinationWidth <=0)
-                    {
+                    if (destinationHeight <= 0 || destinationWidth <= 0) {
                         System.out.println("destinationHeight: " + destinationHeight + "  destinationWidth: " + destinationWidth);
                     }
 
@@ -230,8 +308,7 @@ public class GalleryAPI extends CordovaPlugin {
 
                         byte[] thumbnailData = getBytesFromBitmap(thumbnailBitmap);
                         thumbnailBitmap.recycle();
-                        if (thumbnailData != null)
-                        {
+                        if (thumbnailData != null) {
                             FileOutputStream outStream;
                             try {
                                 outStream = new FileOutputStream(thumbnailPath);
@@ -242,8 +319,7 @@ public class GalleryAPI extends CordovaPlugin {
                                 e.printStackTrace();
                             }
 
-                            if (thumbnailPath.exists())
-                            {
+                            if (thumbnailPath.exists()) {
                                 System.out.println("Thumbnail didn't Exists!!!. Created New One");
                                 media.put("thumbnail", thumbnailPath);
                                 media.put("error", "false");
@@ -283,8 +359,7 @@ public class GalleryAPI extends CordovaPlugin {
 
                 byte[] imageData = getBytesFromBitmap(originalImageBitmap);
                 originalImageBitmap.recycle();
-                if (imageData != null)
-                {
+                if (imageData != null) {
                     FileOutputStream outStream;
                     try {
                         outStream = new FileOutputStream(imagePath);
@@ -341,8 +416,7 @@ public class GalleryAPI extends CordovaPlugin {
         //check if root directory exist
         if (rootDir.exists()) {
             //root directory exists
-            if (dir.exists())
-            {
+            if (dir.exists()) {
                 //dir exists so deleting it
                 deleteRecursive(dir);
             }
@@ -413,8 +487,7 @@ public class GalleryAPI extends CordovaPlugin {
 
                     if (column.startsWith("int.")) {
                         item.put(column.substring(4), cursor.getInt(columnIndex));
-                        if (column.substring(4).equals("width") && item.getInt("width") == 0)
-                        {
+                        if (column.substring(4).equals("width") && item.getInt("width") == 0) {
                             System.err.println("cursor: " + cursor.getInt(columnIndex));
 
                         }
