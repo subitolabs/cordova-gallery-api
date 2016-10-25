@@ -1,4 +1,3 @@
-#import "CDVFile.h"
 #import <Cordova/CDV.h>
 
 #import "GalleryAPI.h"
