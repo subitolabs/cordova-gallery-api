@@ -288,7 +288,7 @@
         
         if (canWriteFile) {
             NSString* imageId = [media[@"id"] stringByReplacingOccurrencesOfString:@"/" withString:@"^"];
-            NSString* imagePath = [NSString stringWithFormat:@"%@/%@.png", docsPath, imageId];
+            NSString* imagePath = [NSString stringWithFormat:@"%@/%@.jpg", docsPath, imageId];
             //                NSString* imagePath = [NSString stringWithFormat:@"%@/temp.png", docsPath];
             
             __block NSData* mediaData;
