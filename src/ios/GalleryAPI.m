@@ -116,9 +116,10 @@
         NSDictionary* subtypes = [GalleryAPI subtypes];
         NSDictionary* album = [command argumentAtIndex:0];
         __block NSMutableArray* assets = [[NSMutableArray alloc] init];
-        __block PHImageRequestOptions* imageRequestOptions = [[PHImageRequestOptions alloc] init];
-        imageRequestOptions.synchronous = YES;
-        imageRequestOptions.resizeMode = PHImageRequestOptionsResizeModeFast;
+        __block PHImageRequestOptions* options = [[PHImageRequestOptions alloc] init];
+        options.synchronous = YES;
+        options.resizeMode = PHImageRequestOptionsResizeModeFast;
+        options.networkAccessAllowed = true;
         
         PHFetchResult* collections = [PHAssetCollection fetchAssetCollectionsWithLocalIdentifiers:@[ album[@"id"] ]
                                                                                           options:nil];
@@ -161,7 +162,8 @@
         PHImageRequestOptions* options = [PHImageRequestOptions new];
         options.synchronous = YES;
         options.resizeMode = PHImageRequestOptionsResizeModeFast;
-        
+        options.networkAccessAllowed = true;
+
         NSMutableDictionary* media = [command argumentAtIndex:0];
         
         NSString* imageId = [media[@"id"] stringByReplacingOccurrencesOfString:@"/" withString:@"^"];
@@ -252,6 +254,7 @@
         options.synchronous = YES;
         options.resizeMode = PHImageRequestOptionsResizeModeNone;
         options.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+        options.networkAccessAllowed = true;
         
         NSString* mediaURL = nil;
         
@@ -324,8 +327,33 @@
                                                                             NSLog(@"Error saving image: %@", [err localizedDescription]);
                                                                         }
                                                                     }
+                                                                } else {
+                                                                    @autoreleasepool {
+                                                                        PHAsset *asset = assets[0];
+                                                                        [[PHImageManager defaultManager] requestImageForAsset:asset
+                                                                                                                   targetSize:CGSizeMake(asset.pixelWidth, asset.pixelHeight)
+                                                                                                                  contentMode:PHImageContentModeAspectFit
+                                                                                                                      options:options
+                                                                                                                resultHandler:^(UIImage* _Nullable result, NSDictionary* _Nullable info) {
+                                                                                                                    if (result)
+                                                                                                                        mediaData =UIImageJPEGRepresentation(result, 1);
+                                                                                                                    NSError* err = nil;
+                                                                                                                    if ([mediaData writeToFile:imagePath
+                                                                                                                                       options:NSAtomicWrite
+                                                                                                                                         error:&err]) {
+                                                                                                                        //                                                                    media[@"error"] = @"false";
+                                                                                                                    }
+                                                                                                                    else {
+                                                                                                                        if (err) {
+                                                                                                                            //                                                                        media[@"thumbnail"] = @"";
+                                                                                                                            NSLog(@"Error saving image: %@", [err localizedDescription]);
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                }];
+                                                                    };
                                                                 }
                                                             }];
+
             }
             else {
                 if ([media[@"type"] isEqualToString:@"PHAssetCollectionSubtypeAlbumMyPhotoStream"]) {
@@ -392,7 +420,7 @@
                                 @(PHAssetCollectionSubtypeSmartAlbumRecentlyAdded) : @"PHAssetCollectionSubtypeSmartAlbumRecentlyAdded",
                                 @(PHAssetCollectionSubtypeSmartAlbumUserLibrary) : @"PHAssetCollectionSubtypeSmartAlbumUserLibrary",
                                 @(PHAssetCollectionSubtypeSmartAlbumSelfPortraits) : @"PHAssetCollectionSubtypeSmartAlbumSelfPortraits",
-                                @(PHAssetCollectionSubtypeSmartAlbumScreenshots) : @"PHAssetCollectionSubtypeSmartAlbumScreenshots"
+                                @(PHAssetCollectionSubtypeSmartAlbumScreenshots) : @"PHAssetCollectionSubtypeSmartAlbumScreenshots",
                                 };
     return subtypes;
 }
