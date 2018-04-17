@@ -304,14 +304,15 @@
                                                             resultHandler:^(NSData* _Nullable imageData, NSString* _Nullable dataUTI, UIImageOrientation orientation, NSDictionary* _Nullable info) {
                                                                 if (imageData) {
                                                                     //                                                                Processing Image Data if needed
-                                                                    if (orientation == UIImageOrientationUp) {
-                                                                        mediaData = imageData;
-                                                                    }
-                                                                    else {
+//                                                                    if (orientation == UIImageOrientationUp) {
+                                                                        //BUGFIX: Landscape images was not rendering
+//                                                                        mediaData = imageData;
+//                                                                    }
+//                                                                    else {
                                                                         UIImage* image = [UIImage imageWithData:imageData];
                                                                         image = [self fixrotation:image];
                                                                         mediaData = UIImageJPEGRepresentation(image, 1);
-                                                                    }
+//                                                                    }
                                                                     
                                                                     //writing image to a file
                                                                     NSError* err = nil;
@@ -368,15 +369,16 @@
                                                                                       options:options
                                                                                 resultHandler:^(NSData* _Nullable imageData, NSString* _Nullable dataUTI, UIImageOrientation orientation, NSDictionary* _Nullable info) {
                                                                                     if (imageData) {
-                                                                                        //                                                                Processing Image Data if needed
-                                                                                        if (orientation == UIImageOrientationUp) {
-                                                                                            mediaData = imageData;
-                                                                                        }
-                                                                                        else {
+                                                                                        //                                                               Processing Image Data if needed
+//                                                                                        if (orientation == UIImageOrientationUp) {
+                                                                                            //BUGFIX: Landscape images was not rendering
+//                                                                                            mediaData = imageData;
+//                                                                                        }
+//                                                                                        else {
                                                                                             UIImage* image = [UIImage imageWithData:imageData];
                                                                                             image = [self fixrotation:image];
                                                                                             mediaData = UIImageJPEGRepresentation(image, 1);
-                                                                                        }
+//                                                                                        }
                                                                                         
                                                                                         //writing image to a file
                                                                                         NSError* err = nil;
